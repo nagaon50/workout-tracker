@@ -723,6 +723,8 @@
     letter-spacing: 1px;
   }
   .history-date{ font-size: 12px; color: var(--chalk-dim); }
+  .history-actions{ display:flex; align-items:center; gap: 12px; }
+  .history-edit{ font-size: 12px; color: var(--chalk-dim); cursor:pointer; text-decoration: underline; text-decoration-style: dotted; white-space: nowrap; }
   .history-delete{ font-size: 12px; color: var(--steel); cursor:pointer; text-decoration: underline; text-decoration-style: dotted; white-space: nowrap; }
   .history-delete.confirming{ color: var(--plate); font-weight: 600; text-decoration: none; }
   .history-ex{ font-size: 12.5px; color: var(--chalk-dim); line-height: 1.6; }
@@ -840,6 +842,125 @@
     margin: 4px 2px 8px;
   }
 
+  /* 데이터 백업 */
+  .backup-section{
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line);
+  }
+  .backup-row{ display:flex; gap: 8px; }
+  .backup-btn{
+    flex:1;
+    text-align:center;
+    padding: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size: 12.5px;
+    color: var(--chalk-dim);
+    cursor:pointer;
+  }
+  .backup-hint{
+    font-size: 11px;
+    color: var(--steel);
+    text-align:center;
+    margin-top: 8px;
+  }
+
+  /* 설정 페이지 */
+  .settings-fab{
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 17px;
+    cursor:pointer;
+    z-index: 150;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .settings-card{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .settings-row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .settings-row label{ font-size: 13px; color: var(--chalk); }
+  .settings-num-input{
+    width: 70px;
+    flex-shrink: 0;
+  }
+  .settings-text-row{ margin-bottom: 12px; }
+  .settings-text-row label{
+    display:block;
+    font-size: 11px;
+    color: var(--chalk-dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .settings-text-input{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--chalk);
+    font-size: 14px;
+    padding: 10px 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .settings-text-input:focus{ outline:none; border-color: var(--plate); }
+  .settings-toggle-row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .settings-toggle-row label{ font-size: 13px; color: var(--chalk); }
+  .settings-switch{
+    position: relative;
+    display:inline-block;
+    width: 42px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--line);
+    cursor:pointer;
+    transition: background .15s ease;
+    flex-shrink: 0;
+  }
+  .settings-switch.on{ background: var(--plate); }
+  .settings-switch-knob{
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--chalk);
+    transition: left .15s ease;
+  }
+  .settings-switch.on .settings-switch-knob{ left: 21px; }
+  .settings-footer{
+    text-align:center;
+    font-size: 11px;
+    color: var(--steel);
+    margin-top: 24px;
+    padding-bottom: 8px;
+  }
+
   /* 하단 고정 탭 */
   .bottom-tabs{
     position: fixed;
@@ -879,7 +1000,7 @@
   <!-- 홈: 대시보드 -->
   <div id="homeActionsView">
     <div class="header">
-      <div class="eyebrow">Push · Pull · Legs</div>
+      <div class="eyebrow" id="homeEyebrow">Push · Pull · Legs</div>
       <h1 id="homeGreeting">👋 안녕하세요</h1>
       <div class="subtitle" id="homeDateLabel"></div>
     </div>
@@ -936,7 +1057,7 @@
     <div class="header">
       <div class="workout-top-row">
         <button class="back-btn" id="workoutBackBtn">← 홈</button>
-        <div class="eyebrow">Push · Pull · Legs</div>
+        <div class="eyebrow" id="workoutEyebrow">Push · Pull · Legs</div>
       </div>
       <div class="day-tabs">
         <div class="day-tab active" data-day="chest">가슴</div>
@@ -1029,6 +1150,99 @@
     <div id="bodyHistoryList"></div>
   </div>
 </section>
+
+<!-- ============ 설정 ============ -->
+<section class="page" id="pageSettings">
+  <div class="header">
+    <div class="workout-top-row">
+      <button class="back-btn" id="settingsBackBtn">← 뒤로</button>
+      <div class="eyebrow">Settings</div>
+    </div>
+    <h1>⚙️ 설정</h1>
+  </div>
+  <div class="main">
+
+    <div class="dash-section">
+      <div class="dash-section-title">✏️ 화면 문구</div>
+      <div class="settings-card">
+        <div class="settings-text-row">
+          <label>상단 문구</label>
+          <input type="text" id="headerEyebrowInput" class="settings-text-input" maxlength="30" placeholder="Push · Pull · Legs">
+        </div>
+        <div class="settings-text-row">
+          <label>인사말</label>
+          <input type="text" id="headerGreetingInput" class="settings-text-input" maxlength="30" placeholder="👋 안녕하세요">
+        </div>
+        <button class="save-btn-compact" id="saveHeaderTextBtn">문구 저장</button>
+      </div>
+    </div>
+
+    <div class="dash-divider"></div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">📈 주간 목표</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <label>운동 목표 (회/주)</label>
+          <input type="number" id="goalStrengthInput" class="set-input settings-num-input" min="1" max="14">
+        </div>
+        <div class="settings-row">
+          <label>유산소 목표 (회/주)</label>
+          <input type="number" id="goalCardioInput" class="set-input settings-num-input" min="1" max="14">
+        </div>
+        <button class="save-btn-compact" id="saveGoalsBtn">목표 저장</button>
+      </div>
+    </div>
+
+    <div class="dash-divider"></div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">⏱ 휴식 타이머</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <label>기본 휴식 시간 (초)</label>
+          <input type="number" id="restSecondsInput" class="set-input settings-num-input" min="10" max="600" step="5">
+        </div>
+        <div class="settings-toggle-row">
+          <label>알림음</label>
+          <span class="settings-switch" id="soundToggle" data-on="true"><span class="settings-switch-knob"></span></span>
+        </div>
+        <div class="settings-toggle-row">
+          <label>진동</label>
+          <span class="settings-switch" id="vibrationToggle" data-on="true"><span class="settings-switch-knob"></span></span>
+        </div>
+        <button class="save-btn-compact" id="saveTimerSettingsBtn">타이머 설정 저장</button>
+      </div>
+    </div>
+
+    <div class="dash-divider"></div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">💾 데이터 백업</div>
+      <div class="backup-row">
+        <span class="backup-btn" id="exportBtn">⬇️ 내보내기</span>
+        <span class="backup-btn" id="importBtn">⬆️ 가져오기</span>
+      </div>
+      <div class="backup-hint">기기·주소가 바뀌어도 백업 파일로 기록을 옮길 수 있어요.</div>
+      <input type="file" id="importFileInput" accept="application/json" style="display:none;">
+    </div>
+
+    <div class="dash-divider"></div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">⚠️ 데이터 초기화</div>
+      <div class="settings-card">
+        <div class="dash-empty" style="margin-bottom:12px;">운동 기록·몸의 변화 기록을 모두 삭제해요. 되돌릴 수 없으니 내보내기로 먼저 백업하는 걸 추천해요.</div>
+        <span class="history-delete" id="resetAllBtn" style="font-size:13px;">전체 데이터 삭제</span>
+      </div>
+    </div>
+
+    <div class="settings-footer">PPL 운동 기록 · 이 브라우저에만 저장돼요</div>
+
+  </div>
+</section>
+
+<div class="settings-fab" id="settingsBtn" title="설정">⚙️</div>
 
 <!-- ============ 하단 고정 탭 ============ -->
 <nav class="bottom-tabs">
@@ -1210,6 +1424,47 @@ let historyLoaded = false;
 let expandedState = {}; // { exName: true/false } — 접기/펼치기 상태
 let recentRecordCache = {}; // { exName: [{date, summary}, ...] | null | 'loading' }
 let frequentExerciseSet = new Set(); // 이 부위에서 자주 기록한 운동 이름들
+let editingDate = null; // null이면 오늘 기록, 날짜 문자열이면 해당 날짜 기록을 수정 중
+
+function targetDateKey(){
+  return editingDate || todayKey();
+}
+
+function formatDateLabelFor(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['일','월','화','수','목','금','토'];
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+}
+
+// ===== 앱 설정 =====
+let appSettings = {
+  goalStrength: 5,
+  goalCardio: 5,
+  restSeconds: 90,
+  soundEnabled: true,
+  vibrationEnabled: true,
+  headerEyebrow: 'Push · Pull · Legs',
+  headerGreeting: '👋 안녕하세요'
+};
+
+function loadSettingsFromStorage(){
+  try{
+    const raw = localStorage.getItem('settings:app');
+    if(raw){
+      appSettings = { ...appSettings, ...JSON.parse(raw) };
+    }
+  }catch(e){}
+}
+
+function saveSettingsToStorage(){
+  localStorage.setItem('settings:app', JSON.stringify(appSettings));
+}
+
+function applyHeaderText(){
+  document.getElementById('homeEyebrow').textContent = appSettings.headerEyebrow;
+  document.getElementById('workoutEyebrow').textContent = appSettings.headerEyebrow;
+  document.getElementById('homeGreeting').textContent = appSettings.headerGreeting;
+}
 
 // 운동별 기록 방식: 'weight_reps'(무게+횟수, 기본), 'reps'(횟수만, 맨몸 반복),
 // 'sec'(초만, 버티기 동작), 'min'(분만, 유산소)
@@ -1241,7 +1496,8 @@ function initEmptyData(exercises, day){
   const data = {};
   exercises.forEach(ex => {
     const mode = getExerciseMode(day, ex);
-    data[ex.name] = [emptySet(mode), emptySet(mode), emptySet(mode)];
+    const count = mode === 'min' ? 1 : 3; // 유산소는 보통 한 번에 쭉 하므로 기본 1개
+    data[ex.name] = Array.from({ length: count }, () => emptySet(mode));
   });
   return data;
 }
@@ -1290,10 +1546,24 @@ async function computeFrequentExercises(day){
 }
 
 async function loadTodayEntry(){
-  const key = `workout:${todayKey()}:${currentDay}`;
+  const key = `workout:${targetDateKey()}:${currentDay}`;
   document.getElementById('exerciseList').innerHTML = '<div class="loading">불러오는 중...</div>';
   expandedState = {};
   recentRecordCache = {};
+
+  // 날짜 라벨 / 저장 버튼 문구를 수정 모드 여부에 맞게 갱신
+  const dateLabelEl = document.getElementById('dateLabel');
+  const streakLabelEl = document.getElementById('streakLabel');
+  const saveBtnEl = document.getElementById('saveBtn');
+  if(editingDate){
+    dateLabelEl.textContent = formatDateLabelFor(editingDate);
+    streakLabelEl.textContent = '✏️ 수정 중';
+    saveBtnEl.textContent = '수정 저장';
+  } else {
+    dateLabelEl.textContent = formatDateLabel();
+    streakLabelEl.textContent = 'GO 💪';
+    saveBtnEl.textContent = '기록 저장';
+  }
 
   currentRoutine = await loadRoutine(currentDay);
   frequentExerciseSet = await computeFrequentExercises(currentDay);
@@ -1394,7 +1664,6 @@ async function getRecentRecordsForExercise(day, exName, limit = 3){
 }
 
 // ===== 휴식 타이머 =====
-const REST_TIMER_DEFAULT = 90; // 기본 휴식 시간(초)
 let restTimerInterval = null;
 let restTimerRemaining = 0;
 
@@ -1473,8 +1742,8 @@ function startRestTimer(seconds){
       updateRestTimerDisplay();
       clearInterval(restTimerInterval);
       restTimerInterval = null;
-      playRestEndSound();
-      if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      if(appSettings.soundEnabled) playRestEndSound();
+      if(appSettings.vibrationEnabled && navigator.vibrate) navigator.vibrate([200, 100, 200]);
       showToast('휴식 끝! 다음 세트 가볼까요 💪');
       setTimeout(hideRestTimer, 900);
       return;
@@ -1503,8 +1772,8 @@ document.getElementById('restTimerMinus').addEventListener('click', () => {
   if(restTimerRemaining === 0){
     clearInterval(restTimerInterval);
     restTimerInterval = null;
-    playRestEndSound();
-    if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if(appSettings.soundEnabled) playRestEndSound();
+    if(appSettings.vibrationEnabled && navigator.vibrate) navigator.vibrate([200, 100, 200]);
     showToast('휴식 끝! 다음 세트 가볼까요 💪');
     setTimeout(hideRestTimer, 900);
   }
@@ -1705,7 +1974,7 @@ function renderExercises(){
         const exObj = currentRoutine.find(x => x.name === exName);
         const mode = getExerciseMode(currentDay, exObj);
         if(mode !== 'min'){ // 유산소(시간 기록)는 휴식 타이머 제외
-          startRestTimer(REST_TIMER_DEFAULT);
+          startRestTimer(appSettings.restSeconds);
         }
       }
     });
@@ -1722,7 +1991,7 @@ function renderExercises(){
 }
 
 async function saveToday(){
-  const key = `workout:${todayKey()}:${currentDay}`;
+  const key = `workout:${targetDateKey()}:${currentDay}`;
   // 체크(✓) 표시한 세트만 기록으로 저장
   const filtered = {};
   Object.keys(currentData).forEach(exName => {
@@ -1736,18 +2005,28 @@ async function saveToday(){
   try{
     const result = await storage.set(key, JSON.stringify(filtered));
     if(result){
-      // 오늘 운동 화면에 처음 들어온 시각부터 지금까지 경과 시간을 세션 시간으로 기록
-      const startKey = `workout:sessionStart:${todayKey()}`;
-      const startedAt = localStorage.getItem(startKey);
-      if(startedAt){
-        const minutes = Math.max(1, Math.round((Date.now() - Number(startedAt)) / 60000));
-        localStorage.setItem(`workout:duration:${todayKey()}`, String(minutes));
+      const wasEditing = !!editingDate;
+      if(!wasEditing){
+        // 오늘 운동 화면에 처음 들어온 시각부터 지금까지 경과 시간을 세션 시간으로 기록
+        const startKey = `workout:sessionStart:${todayKey()}`;
+        const startedAt = localStorage.getItem(startKey);
+        if(startedAt){
+          const minutes = Math.max(1, Math.round((Date.now() - Number(startedAt)) / 60000));
+          localStorage.setItem(`workout:duration:${todayKey()}`, String(minutes));
+        }
       }
-      showToast();
       await updateDateIndex();
       historyLoaded = false;
       loadRecommendation();
       loadHomeExtras();
+      if(wasEditing){
+        editingDate = null;
+        showToast('수정됐어요 ✏️');
+        showPage('record');
+        loadHistory();
+      } else {
+        showToast();
+      }
     }
   }catch(e){
     console.error('저장 실패', e);
@@ -1762,7 +2041,7 @@ async function updateDateIndex(){
       const res = await storage.get(idxKey);
       if(res && res.value) dates = JSON.parse(res.value);
     }catch(e){}
-    const entry = `${todayKey()}|${currentDay}`;
+    const entry = `${targetDateKey()}|${currentDay}`;
     if(!dates.includes(entry)){
       dates.push(entry);
       await storage.set(idxKey, JSON.stringify(dates));
@@ -1799,7 +2078,10 @@ function buildDateCardHtml(date, dayEntries){
       <div class="history-section">
         <div class="history-section-head">
           <span class="history-day">${dayLabel}</span>
-          <span class="history-delete" data-date="${date}" data-day="${day}" title="이 부위 기록 삭제">삭제</span>
+          <span class="history-actions">
+            <span class="history-edit" data-date="${date}" data-day="${day}" title="이 부위 기록 수정">수정</span>
+            <span class="history-delete" data-date="${date}" data-day="${day}" title="이 부위 기록 삭제">삭제</span>
+          </span>
         </div>
         ${exHtml}
       </div>
@@ -1826,6 +2108,13 @@ async function buildDateEntriesFor(date, days){
 }
 
 function wireDeleteButtons(container, onDeleted){
+  container.querySelectorAll('.history-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const { date, day } = btn.dataset;
+      editWorkoutEntry(date, day);
+    });
+  });
   container.querySelectorAll('.history-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -1847,6 +2136,51 @@ function wireDeleteButtons(container, onDeleted){
       onDeleted();
     });
   });
+}
+
+async function editWorkoutEntry(date, day){
+  editingDate = date;
+  currentDay = day;
+  document.querySelectorAll('.day-tab').forEach(t => t.classList.toggle('active', t.dataset.day === day));
+  showPage('home');
+  showHomeWorkoutView();
+  await loadTodayEntry();
+
+  // 기록됐던 운동은 자동으로 펼쳐서 바로 수정할 수 있게, 첫 운동으로 스크롤
+  const recordedNames = Object.keys(currentData).filter(name =>
+    (currentData[name] || []).some(s => s.done)
+  );
+  if(recordedNames.length === 0) return;
+
+  recordedNames.forEach(name => { expandedState[name] = true; });
+  renderExercises();
+
+  const firstName = recordedNames[0];
+  setTimeout(() => {
+    const header = list_querySelectorExHeader(firstName);
+    if(header) header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+
+  // 최근 기록도 함께 불러오기
+  for(const name of recordedNames){
+    if(recentRecordCache[name] === undefined){
+      recentRecordCache[name] = 'loading';
+    }
+  }
+  renderExercises();
+  for(const name of recordedNames){
+    const rec = await getRecentRecordsForExercise(currentDay, name, 3);
+    recentRecordCache[name] = rec;
+  }
+  renderExercises();
+}
+
+function list_querySelectorExHeader(name){
+  const headers = document.querySelectorAll('#exerciseList .ex-header');
+  for(const h of headers){
+    if(h.dataset.ex === name) return h;
+  }
+  return null;
 }
 
 async function getAllDateEntries(){
@@ -1883,6 +2217,86 @@ async function loadHistoryStats(){
     box.innerHTML = '';
   }
 }
+
+// ===== 데이터 백업 (내보내기 / 가져오기) =====
+function exportBackup(){
+  const backup = {};
+  Object.keys(localStorage).forEach(k => {
+    if(k.startsWith('workout:') || k === 'body:records'){
+      backup[k] = localStorage.getItem(k);
+    }
+  });
+  const payload = { exportedAt: new Date().toISOString(), data: backup };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `workout-backup-${todayKey()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('백업 파일을 저장했어요 📤');
+}
+
+async function importBackupFile(file){
+  let parsed;
+  try{
+    const text = await file.text();
+    parsed = JSON.parse(text);
+  }catch(e){
+    showToast('파일을 읽을 수 없어요');
+    return;
+  }
+  const data = (parsed && parsed.data) ? parsed.data : parsed;
+  if(!data || typeof data !== 'object'){
+    showToast('올바른 백업 파일이 아니에요');
+    return;
+  }
+
+  // 날짜 인덱스는 기존 것과 합침 (덮어써서 기존 기록이 사라지지 않도록)
+  if(data['workout:dates']){
+    try{
+      const incoming = JSON.parse(data['workout:dates']);
+      const existing = JSON.parse(localStorage.getItem('workout:dates') || '[]');
+      const merged = Array.from(new Set([...existing, ...incoming]));
+      localStorage.setItem('workout:dates', JSON.stringify(merged));
+    }catch(e){}
+  }
+  // 변화(몸 상태) 기록도 날짜 기준으로 합침
+  if(data['body:records']){
+    try{
+      const incoming = JSON.parse(data['body:records']);
+      const existing = JSON.parse(localStorage.getItem('body:records') || '[]');
+      const map = {};
+      existing.forEach(r => { map[r.date] = r; });
+      incoming.forEach(r => { map[r.date] = { ...(map[r.date] || {}), ...r }; });
+      const mergedRecords = Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
+      localStorage.setItem('body:records', JSON.stringify(mergedRecords));
+    }catch(e){}
+  }
+  // 나머지 개별 운동 기록/루틴 등은 그대로 채워넣음 (같은 키만 덮어씀)
+  Object.keys(data).forEach(k => {
+    if(k === 'workout:dates' || k === 'body:records') return;
+    localStorage.setItem(k, data[k]);
+  });
+
+  showToast('백업을 불러왔어요 📥');
+  loadRecommendation();
+  loadHomeExtras();
+  loadHistory();
+  loadBodyPage();
+}
+
+document.getElementById('exportBtn').addEventListener('click', exportBackup);
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFileInput').click();
+});
+document.getElementById('importFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(file) await importBackupFile(file);
+  e.target.value = '';
+});
 
 async function loadHistory(){
   const panel = document.getElementById('historyContent');
@@ -1929,8 +2343,8 @@ async function deleteHistoryEntry(date, day){
     await storage.set('workout:dates', JSON.stringify(dates));
   }catch(e){ console.error('인덱스 업데이트 실패', e); }
 
-  if(date === todayKey() && day === currentDay){
-    currentData = initEmptyData(currentRoutine);
+  if(date === targetDateKey() && day === currentDay){
+    currentData = initEmptyData(currentRoutine, currentDay);
   }
 }
 
@@ -2088,7 +2502,6 @@ async function loadRecommendation(){
 }
 
 // ===== 홈 대시보드 확장 섹션 =====
-const WEEK_GOALS = { strength: 5, cardio: 5 }; // 주간 목표 횟수 (기본값)
 
 function getWeekStart(d = new Date()){
   const day = d.getDay(); // 0=일 ... 6=토
@@ -2137,13 +2550,13 @@ async function renderWeeklyProgress(entries){
   box.innerHTML = `
     <div class="week-progress-row">
       <span class="week-progress-label">운동</span>
-      <span class="week-progress-bar">${renderBar(strengthDates.size, WEEK_GOALS.strength)}</span>
-      <span class="week-progress-count">${strengthDates.size} / ${WEEK_GOALS.strength}회</span>
+      <span class="week-progress-bar">${renderBar(strengthDates.size, appSettings.goalStrength)}</span>
+      <span class="week-progress-count">${strengthDates.size} / ${appSettings.goalStrength}회</span>
     </div>
     <div class="week-progress-row">
       <span class="week-progress-label">유산소</span>
-      <span class="week-progress-bar">${renderBar(cardioDates.size, WEEK_GOALS.cardio)}</span>
-      <span class="week-progress-count">${cardioDates.size} / ${WEEK_GOALS.cardio}회</span>
+      <span class="week-progress-bar">${renderBar(cardioDates.size, appSettings.goalCardio)}</span>
+      <span class="week-progress-count">${cardioDates.size} / ${appSettings.goalCardio}회</span>
     </div>
   `;
 }
@@ -2511,7 +2924,10 @@ function showPage(name){
   document.getElementById('pageHome').classList.toggle('active', name === 'home');
   document.getElementById('pageRecord').classList.toggle('active', name === 'record');
   document.getElementById('pageChange').classList.toggle('active', name === 'change');
-  document.querySelectorAll('.bottom-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.getElementById('pageSettings').classList.toggle('active', name === 'settings');
+  if(name !== 'settings'){
+    document.querySelectorAll('.bottom-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  }
   window.scrollTo({ top: 0 });
 }
 
@@ -2520,9 +2936,11 @@ function showPage(name){
 function showHomeWorkoutView(){
   document.getElementById('homeActionsView').style.display = 'none';
   document.getElementById('homeWorkoutView').style.display = 'block';
-  const startKey = `workout:sessionStart:${todayKey()}`;
-  if(!localStorage.getItem(startKey)){
-    localStorage.setItem(startKey, String(Date.now()));
+  if(!editingDate){
+    const startKey = `workout:sessionStart:${todayKey()}`;
+    if(!localStorage.getItem(startKey)){
+      localStorage.setItem(startKey, String(Date.now()));
+    }
   }
   window.scrollTo({ top: 0 });
 }
@@ -2535,6 +2953,7 @@ function showHomeActionsView(){
 document.querySelectorAll('.bottom-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     const name = tab.dataset.tab;
+    if(name !== 'home') editingDate = null;
     showPage(name);
     if(name === 'home'){ loadRecommendation(); loadHomeExtras(); }
     if(name === 'record') loadHistory();
@@ -2543,17 +2962,120 @@ document.querySelectorAll('.bottom-tab').forEach(tab => {
 });
 
 document.getElementById('startWorkoutBtn').addEventListener('click', () => {
+  editingDate = null;
   if(suggestedDay) selectDay(suggestedDay);
   showHomeWorkoutView();
 });
 document.getElementById('workoutBackBtn').addEventListener('click', () => {
+  editingDate = null;
   hideRestTimer();
   showHomeActionsView();
   loadRecommendation();
   loadHomeExtras();
 });
 
+// ===== 설정 페이지 =====
+function setSwitchState(id, on){
+  const el = document.getElementById(id);
+  el.dataset.on = on ? 'true' : 'false';
+  el.classList.toggle('on', on);
+}
+
+function loadSettingsPage(){
+  document.getElementById('headerEyebrowInput').value = appSettings.headerEyebrow;
+  document.getElementById('headerGreetingInput').value = appSettings.headerGreeting;
+  document.getElementById('goalStrengthInput').value = appSettings.goalStrength;
+  document.getElementById('goalCardioInput').value = appSettings.goalCardio;
+  document.getElementById('restSecondsInput').value = appSettings.restSeconds;
+  setSwitchState('soundToggle', appSettings.soundEnabled);
+  setSwitchState('vibrationToggle', appSettings.vibrationEnabled);
+}
+
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  loadSettingsPage();
+  showPage('settings');
+});
+document.getElementById('settingsBackBtn').addEventListener('click', () => {
+  showPage('home');
+  loadRecommendation();
+  loadHomeExtras();
+});
+
+document.getElementById('saveHeaderTextBtn').addEventListener('click', () => {
+  const eyebrow = document.getElementById('headerEyebrowInput').value.trim();
+  const greeting = document.getElementById('headerGreetingInput').value.trim();
+  appSettings.headerEyebrow = eyebrow || 'Push · Pull · Legs';
+  appSettings.headerGreeting = greeting || '👋 안녕하세요';
+  saveSettingsToStorage();
+  applyHeaderText();
+  document.getElementById('headerEyebrowInput').value = appSettings.headerEyebrow;
+  document.getElementById('headerGreetingInput').value = appSettings.headerGreeting;
+  showToast('문구가 저장됐어요 ✏️');
+});
+
+document.getElementById('soundToggle').addEventListener('click', () => {
+  const el = document.getElementById('soundToggle');
+  setSwitchState('soundToggle', el.dataset.on !== 'true');
+});
+document.getElementById('vibrationToggle').addEventListener('click', () => {
+  const el = document.getElementById('vibrationToggle');
+  setSwitchState('vibrationToggle', el.dataset.on !== 'true');
+});
+
+document.getElementById('saveGoalsBtn').addEventListener('click', () => {
+  const s = Math.max(1, Math.min(14, parseInt(document.getElementById('goalStrengthInput').value) || 5));
+  const c = Math.max(1, Math.min(14, parseInt(document.getElementById('goalCardioInput').value) || 5));
+  appSettings.goalStrength = s;
+  appSettings.goalCardio = c;
+  saveSettingsToStorage();
+  document.getElementById('goalStrengthInput').value = s;
+  document.getElementById('goalCardioInput').value = c;
+  showToast('목표가 저장됐어요 🎯');
+  loadHomeExtras();
+});
+
+document.getElementById('saveTimerSettingsBtn').addEventListener('click', () => {
+  const sec = Math.max(10, Math.min(600, parseInt(document.getElementById('restSecondsInput').value) || 90));
+  appSettings.restSeconds = sec;
+  appSettings.soundEnabled = document.getElementById('soundToggle').dataset.on === 'true';
+  appSettings.vibrationEnabled = document.getElementById('vibrationToggle').dataset.on === 'true';
+  saveSettingsToStorage();
+  document.getElementById('restSecondsInput').value = sec;
+  showToast('타이머 설정이 저장됐어요 ⏱');
+});
+
+document.getElementById('resetAllBtn').addEventListener('click', (e) => {
+  const btn = e.currentTarget;
+  if(btn.dataset.confirming !== '1'){
+    btn.dataset.confirming = '1';
+    btn.textContent = '한번 더 탭하면 전체 삭제';
+    btn.classList.add('confirming');
+    clearTimeout(btn._confirmTimer);
+    btn._confirmTimer = setTimeout(() => {
+      btn.dataset.confirming = '0';
+      btn.textContent = '전체 데이터 삭제';
+      btn.classList.remove('confirming');
+    }, 3000);
+    return;
+  }
+  clearTimeout(btn._confirmTimer);
+  Object.keys(localStorage).forEach(k => {
+    if(k.startsWith('workout:') || k === 'body:records') localStorage.removeItem(k);
+  });
+  btn.dataset.confirming = '0';
+  btn.textContent = '전체 데이터 삭제';
+  btn.classList.remove('confirming');
+  showToast('모든 기록이 삭제됐어요');
+  showPage('home');
+  loadRecommendation();
+  loadHomeExtras();
+  loadHistory();
+  loadBodyPage();
+});
+
 // ===== 초기 로드 =====
+loadSettingsFromStorage();
+applyHeaderText();
 document.getElementById('homeDateLabel').textContent = formatDateLabel();
 document.getElementById('dateLabel').textContent = formatDateLabel();
 document.getElementById('streakLabel').textContent = 'GO 💪';
