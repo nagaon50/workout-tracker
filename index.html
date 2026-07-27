@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>운동 기록</title>
+<title>PPL 운동 기록</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
 
@@ -108,6 +108,19 @@
     font-size: 13px;
     color: var(--chalk-dim);
   }
+  .workout-date-picker{
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--chalk-dim);
+    font-size: 11.5px;
+    padding: 5px 8px;
+    font-family: 'Oswald', sans-serif;
+    cursor: pointer;
+  }
+  .workout-date-picker::-webkit-calendar-picker-indicator{
+    filter: invert(0.6);
+  }
   .streak{
     font-family:'Oswald',sans-serif;
     font-size: 12px;
@@ -135,6 +148,7 @@
     align-items:center;
     gap: 10px;
     min-width:0;
+    flex: 1;
   }
   .ex-icon{
     width: 40px;
@@ -154,6 +168,7 @@
     flex-direction:column;
     min-width:0;
     overflow:hidden;
+    align-items: flex-start;
   }
   .ex-name{
     font-family:'Oswald',sans-serif;
@@ -168,6 +183,7 @@
     text-decoration-style: dotted;
     text-decoration-color: var(--steel);
     text-underline-offset: 3px;
+    text-align: left;
   }
   .ex-name-en{
     font-size: 10.5px;
@@ -177,6 +193,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-top: 1px;
+    text-align: left;
   }
   .ex-freq-badge{
     flex-shrink: 0;
@@ -217,8 +234,8 @@
     border-radius: 6px;
     color: var(--chalk);
     font-size: 14px;
-    padding: 8px 6px;
-    text-align:center;
+    padding: 8px 10px;
+    text-align:left;
     font-family:'Oswald',sans-serif;
     width:100%;
   }
@@ -253,7 +270,7 @@
     text-transform: uppercase;
   }
   .col-labels.time-mode{ grid-template-columns: 28px 1fr 34px; }
-  .col-labels span:nth-child(2), .col-labels span:nth-child(3){ text-align:center; }
+  .col-labels span:nth-child(2), .col-labels span:nth-child(3){ text-align:left; padding-left: 4px; }
   .ex-chevron{
     color: var(--steel);
     font-size: 12px;
@@ -751,15 +768,7 @@
   .add-ex-trigger .plus{ color: var(--plate); font-size: 18px; line-height:1; }
   .add-ex-form{ display:none; margin-top: 12px; gap: 8px; flex-direction: column; }
   .add-ex-form.show{ display:flex; }
-  .add-ex-form input{
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    color: var(--chalk);
-    font-size: 14px;
-    padding: 10px 10px;
-    font-family: 'Noto Sans KR', sans-serif;
-  }
+  .add-ex-form input{ display:none; } /* .add-ex-form-inp 클래스로 대체됨 */
   .add-ex-form input:focus{ outline:none; border-color: var(--plate); }
   .add-ex-form-actions{ display:flex; gap: 8px; }
   .add-ex-confirm{
@@ -785,6 +794,43 @@
     cursor:pointer;
   }
   .ex-remove{ color: var(--steel); font-size: 16px; cursor:pointer; padding: 0 2px; }
+  .ex-edit-btn{ color: var(--chalk-dim); font-size: 15px; cursor:pointer; padding: 0 2px; }
+  .ex-drag-handle{
+    font-size: 18px; color: var(--steel); cursor: grab; padding: 0 6px 0 2px;
+    touch-action: none; user-select: none; flex-shrink: 0; line-height:1;
+  }
+  .ex-edit-form{
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .add-ex-form-inp{
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--chalk);
+    font-size: 14px;
+    padding: 10px 10px;
+    font-family: 'Noto Sans KR', sans-serif;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .add-ex-form-inp:focus{ outline: none; border-color: var(--plate); }
+  .exercise-card.dragging{
+    position: fixed;
+    z-index: 500;
+    opacity: 0.93;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+  .drag-placeholder{
+    border: 2px dashed var(--plate);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    background: rgba(196,64,43,0.06);
+  }
 
   /* 변화 탭 */
   .body-input-card{
@@ -1073,7 +1119,10 @@
     <div class="main">
       <div class="date-row">
         <span class="date-label" id="dateLabel"></span>
-        <span class="streak" id="streakLabel"></span>
+        <span style="display:flex; align-items:center; gap:8px;">
+          <input type="date" id="workoutDatePicker" class="workout-date-picker">
+          <span class="streak" id="streakLabel"></span>
+        </span>
       </div>
       <div id="exerciseList" class="loading">불러오는 중...</div>
       <div class="rest-timer-bar" id="restTimerBar" style="display:none;">
@@ -1551,7 +1600,11 @@ async function loadTodayEntry(){
   expandedState = {};
   recentRecordCache = {};
 
-  // 날짜 라벨 / 저장 버튼 문구를 수정 모드 여부에 맞게 갱신
+  // 날짜 선택기를 현재 대상 날짜로 동기화
+  document.getElementById('workoutDatePicker').value = targetDateKey();
+  document.getElementById('workoutDatePicker').max = todayKey(); // 미래 날짜 선택 방지
+
+  // 날짜 라벨 / 저장 버튼 문구를 날짜에 맞게 갱신
   const dateLabelEl = document.getElementById('dateLabel');
   const streakLabelEl = document.getElementById('streakLabel');
   const saveBtnEl = document.getElementById('saveBtn');
@@ -1586,13 +1639,27 @@ async function loadTodayEntry(){
   renderExercises();
 }
 
-async function addExercise(name, target){
+async function addExercise(name, nameEn, target){
   if(!name.trim()) return;
-  const newEx = {name: name.trim(), target: target.trim() || '직접 추가'};
+  const newEx = { name: name.trim(), nameEn: nameEn.trim() || '', target: target.trim() || '직접 추가' };
   currentRoutine.push(newEx);
   await saveRoutine(currentDay, currentRoutine);
   const mode = getExerciseMode(currentDay, newEx);
   currentData[name.trim()] = [emptySet(mode), emptySet(mode), emptySet(mode)];
+  renderExercises();
+}
+
+async function editExercise(oldName, newName, newNameEn, newTarget){
+  const idx = currentRoutine.findIndex(ex => ex.name === oldName);
+  if(idx < 0) return;
+  const updated = { ...currentRoutine[idx], name: newName, nameEn: newNameEn, target: newTarget || currentRoutine[idx].target };
+  currentRoutine[idx] = updated;
+  await saveRoutine(currentDay, currentRoutine);
+  // 데이터 키 이름이 바뀐 경우 마이그레이션
+  if(oldName !== newName && currentData[oldName]){
+    currentData[newName] = currentData[oldName];
+    delete currentData[oldName];
+  }
   renderExercises();
 }
 
@@ -1779,6 +1846,81 @@ document.getElementById('restTimerMinus').addEventListener('click', () => {
   }
 });
 
+function initDragSort(list){
+  let dragging = null;     // 드래그 중인 .exercise-card 요소
+  let placeholder = null;  // 위치 표시용 투명 박스
+  let startY = 0, offsetY = 0;
+
+  function getCards(){ return [...list.querySelectorAll('.exercise-card')]; }
+
+  function createPlaceholder(height){
+    const ph = document.createElement('div');
+    ph.className = 'drag-placeholder';
+    ph.style.height = height + 'px';
+    return ph;
+  }
+
+  function cardAtY(y){
+    const cards = getCards().filter(c => c !== dragging);
+    for(const c of cards){
+      const rect = c.getBoundingClientRect();
+      if(y < rect.top + rect.height / 2) return c;
+    }
+    return null;
+  }
+
+  function onStart(e, card){
+    const touch = e.touches ? e.touches[0] : e;
+    startY = touch.clientY;
+    offsetY = touch.clientY - card.getBoundingClientRect().top;
+    dragging = card;
+    const rect = card.getBoundingClientRect();
+    placeholder = createPlaceholder(rect.height);
+    card.classList.add('dragging');
+    card.style.width = rect.width + 'px';
+    card.style.top = (rect.top + window.scrollY) + 'px';
+    list.insertBefore(placeholder, card);
+    document.body.appendChild(card);
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    e.preventDefault();
+    const touch = e.touches ? e.touches[0] : e;
+    const y = touch.clientY + window.scrollY;
+    dragging.style.top = (y - offsetY) + 'px';
+    const before = cardAtY(touch.clientY);
+    if(before) list.insertBefore(placeholder, before);
+    else list.insertBefore(placeholder, list.querySelector('.add-ex-card'));
+  }
+
+  async function onEnd(){
+    if(!dragging) return;
+    dragging.classList.remove('dragging');
+    dragging.style.width = '';
+    dragging.style.top = '';
+    list.insertBefore(dragging, placeholder);
+    placeholder.remove();
+    placeholder = null;
+
+    // 새 순서로 currentRoutine 재정렬 후 저장
+    const newOrder = getCards().map(c => c.querySelector('.ex-header')?.dataset.ex).filter(Boolean);
+    currentRoutine = newOrder.map(name => currentRoutine.find(ex => ex.name === name)).filter(Boolean);
+    await saveRoutine(currentDay, currentRoutine);
+    dragging = null;
+    renderExercises();
+  }
+
+  list.querySelectorAll('.ex-drag-handle').forEach(handle => {
+    handle.addEventListener('touchstart', e => { onStart(e, handle.closest('.exercise-card')); }, { passive: true });
+    handle.addEventListener('mousedown', e => { onStart(e, handle.closest('.exercise-card')); });
+  });
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onEnd);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+}
+
 function renderExercises(){
   const list = document.getElementById('exerciseList');
   list.className = '';
@@ -1854,6 +1996,7 @@ function renderExercises(){
 
     card.innerHTML = `
       <div class="ex-header" data-ex="${ex.name}">
+        <span class="ex-drag-handle" data-ex="${ex.name}" title="길게 눌러 순서 변경">⠿</span>
         <span class="ex-name-group">
           <span class="ex-icon">${ICONS[ex.icon] || ICONS.custom}</span>
           <span class="ex-name-col">
@@ -1862,11 +2005,21 @@ function renderExercises(){
           </span>
           ${isFrequent ? `<span class="ex-freq-badge" title="자주 하는 운동">🔥 자주함</span>` : ''}
         </span>
-        <span style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+        <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
           ${isExpanded ? `<span class="ex-target">${ex.target}</span>` : ''}
+          <span class="ex-edit-btn" data-ex="${ex.name}" title="운동 편집">✎</span>
           <span class="ex-remove" data-ex="${ex.name}" title="운동 삭제">✕</span>
           <span class="ex-chevron">${isExpanded ? '▾' : '▸'}</span>
         </span>
+      </div>
+      <div class="ex-edit-form" id="editForm_${ex.name.replace(/\s/g,'_')}" style="display:none;">
+        <input class="add-ex-form-inp" type="text" placeholder="운동 이름" value="${ex.name}" data-field="name">
+        <input class="add-ex-form-inp" type="text" placeholder="영문명 (예: Bench Press)" value="${ex.nameEn || ''}" data-field="nameEn">
+        <input class="add-ex-form-inp" type="text" placeholder="목표 세트·횟수" value="${ex.target || ''}" data-field="target">
+        <div class="add-ex-form-actions">
+          <button class="add-ex-confirm ex-edit-save" data-ex="${ex.name}">저장</button>
+          <button class="add-ex-cancel ex-edit-cancel" data-ex="${ex.name}">취소</button>
+        </div>
       </div>
       <div class="ex-body" style="display:${isExpanded ? 'block' : 'none'};">
         ${recentHtml}
@@ -1881,8 +2034,9 @@ function renderExercises(){
   addCard.innerHTML = `
     <div class="add-ex-trigger" id="addExTrigger"><span class="plus">+</span> 운동 추가</div>
     <div class="add-ex-form" id="addExForm">
-      <input type="text" id="newExName" placeholder="운동 이름 (예: 데드리프트)">
-      <input type="text" id="newExTarget" placeholder="${currentDay === 'cardio' ? '목표 (예: 20분) — 선택' : currentDay === 'abs' ? '목표 (예: 3세트 x 15회 또는 30초) — 선택' : '목표 (예: 3세트 x 10회) — 선택'}">
+      <input class="add-ex-form-inp" type="text" id="newExName" placeholder="운동 이름 (예: 데드리프트)">
+      <input class="add-ex-form-inp" type="text" id="newExNameEn" placeholder="영문명 (예: Deadlift) — 선택">
+      <input class="add-ex-form-inp" type="text" id="newExTarget" placeholder="${currentDay === 'cardio' ? '목표 (예: 20분)' : currentDay === 'abs' ? '목표 (예: 3세트 x 15회)' : '목표 (예: 3세트 x 10회)'}">
       <div class="add-ex-form-actions">
         <button class="add-ex-confirm" id="addExConfirm">추가하기</button>
         <button class="add-ex-cancel" id="addExCancel">취소</button>
@@ -1899,25 +2053,81 @@ function renderExercises(){
   document.getElementById('addExCancel').addEventListener('click', () => {
     document.getElementById('addExForm').classList.remove('show');
     document.getElementById('addExTrigger').style.display = 'flex';
+    document.getElementById('newExName').value = '';
+    document.getElementById('newExNameEn').value = '';
+    document.getElementById('newExTarget').value = '';
   });
   document.getElementById('addExConfirm').addEventListener('click', async () => {
-    const name = document.getElementById('newExName').value;
-    const target = document.getElementById('newExTarget').value;
-    if(!name.trim()) return;
-    await addExercise(name, target);
+    const name = document.getElementById('newExName').value.trim();
+    const nameEn = document.getElementById('newExNameEn').value.trim();
+    const target = document.getElementById('newExTarget').value.trim();
+    if(!name) return;
+    await addExercise(name, nameEn, target);
   });
 
+  // 삭제: 두 번 탭 확인
   list.querySelectorAll('.ex-remove').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
-      const name = e.target.dataset.ex;
+      if(btn.dataset.confirming !== '1'){
+        btn.dataset.confirming = '1';
+        btn.textContent = '삭제?';
+        btn.style.color = 'var(--plate)';
+        clearTimeout(btn._timer);
+        btn._timer = setTimeout(() => {
+          btn.dataset.confirming = '0';
+          btn.textContent = '✕';
+          btn.style.color = '';
+        }, 2000);
+        return;
+      }
+      clearTimeout(btn._timer);
+      const name = btn.dataset.ex;
       await removeExercise(name);
     });
   });
 
+  // 편집 버튼
+  list.querySelectorAll('.ex-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const name = btn.dataset.ex;
+      const formId = 'editForm_' + name.replace(/\s/g,'_');
+      const form = document.getElementById(formId);
+      if(!form) return;
+      const isOpen = form.style.display !== 'none';
+      // 다른 편집 폼 모두 닫기
+      list.querySelectorAll('.ex-edit-form').forEach(f => { f.style.display = 'none'; });
+      form.style.display = isOpen ? 'none' : 'block';
+    });
+  });
+
+  // 편집 저장/취소
+  list.querySelectorAll('.ex-edit-save').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const oldName = btn.dataset.ex;
+      const formId = 'editForm_' + oldName.replace(/\s/g,'_');
+      const form = document.getElementById(formId);
+      const newName = form.querySelector('[data-field="name"]').value.trim();
+      const newNameEn = form.querySelector('[data-field="nameEn"]').value.trim();
+      const newTarget = form.querySelector('[data-field="target"]').value.trim();
+      if(!newName) return;
+      await editExercise(oldName, newName, newNameEn, newTarget);
+    });
+  });
+  list.querySelectorAll('.ex-edit-cancel').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      list.querySelectorAll('.ex-edit-form').forEach(f => { f.style.display = 'none'; });
+    });
+  });
+
+  // 접기/펼치기
   list.querySelectorAll('.ex-header').forEach(header => {
     header.addEventListener('click', async (e) => {
-      if(e.target.closest('.ex-name') || e.target.closest('.ex-remove')) return;
+      if(e.target.closest('.ex-name') || e.target.closest('.ex-remove') ||
+         e.target.closest('.ex-edit-btn') || e.target.closest('.ex-drag-handle')) return;
       const name = header.dataset.ex;
       const willExpand = !expandedState[name];
       expandedState[name] = willExpand;
@@ -1932,6 +2142,9 @@ function renderExercises(){
       }
     });
   });
+
+  // 드래그 정렬 (터치 + 마우스)
+  initDragSort(list);
 
   function wireAutoFillInput(selector, field, autoField){
     list.querySelectorAll(selector).forEach(inp => {
@@ -2453,6 +2666,13 @@ function selectDay(day){
 
 document.getElementById('saveBtn').addEventListener('click', saveToday);
 
+document.getElementById('workoutDatePicker').addEventListener('change', (e) => {
+  const selected = e.target.value;
+  if(!selected) return;
+  editingDate = (selected === todayKey()) ? null : selected;
+  loadTodayEntry();
+});
+
 // ===== 오늘의 추천 루틴 =====
 const DAY_ORDER = ['chest','back','shoulder','arm','leg','abs','cardio'];
 
@@ -2613,10 +2833,32 @@ async function renderRecentWorkout(entries){
   const dayEntries = await buildDateEntriesFor(latestDate, byDate[latestDate]);
   const label = dayEntries.map(d => ROUTINE[d.day] ? ROUTINE[d.day].label.split(' · ')[0] : d.day).join(' + ');
   const totalVolume = dayEntries.reduce((sum, d) => sum + volumeOfDayData(d.data), 0);
-  const durationRaw = localStorage.getItem(`workout:duration:${latestDate}`);
+
+  // 운동 시간 계산
+  // 유산소: 실제 기록된 세트의 분(minutes) 합산
+  // 근력: 세션 타이머(최대 180분 캡)
+  let displayMinutes = null;
+  const isCardioOnly = byDate[latestDate].every(d => d === 'cardio');
+  if(isCardioOnly){
+    let totalMins = 0;
+    dayEntries.forEach(({ data }) => {
+      Object.values(data).forEach(sets => {
+        (sets || []).forEach(s => {
+          if(s && s.minutes) totalMins += parseFloat(s.minutes) || 0;
+        });
+      });
+    });
+    if(totalMins > 0) displayMinutes = Math.round(totalMins);
+  } else {
+    const durationRaw = localStorage.getItem(`workout:duration:${latestDate}`);
+    if(durationRaw){
+      const mins = parseInt(durationRaw);
+      if(mins > 0 && mins <= 180) displayMinutes = mins; // 3시간 초과는 오류로 판단해 숨김
+    }
+  }
 
   let metaHtml = `<span>${latestDate.slice(5).replace('-', '.')}</span>`;
-  if(durationRaw) metaHtml += `<span><b>${durationRaw}분</b></span>`;
+  if(displayMinutes) metaHtml += `<span><b>${displayMinutes}분</b></span>`;
   if(totalVolume > 0) metaHtml += `<span>총 볼륨 <b>${Math.round(totalVolume).toLocaleString()}kg</b></span>`;
 
   box.innerHTML = `
@@ -2968,6 +3210,7 @@ document.getElementById('startWorkoutBtn').addEventListener('click', () => {
 });
 document.getElementById('workoutBackBtn').addEventListener('click', () => {
   editingDate = null;
+  document.getElementById('workoutDatePicker').value = todayKey();
   hideRestTimer();
   showHomeActionsView();
   loadRecommendation();
@@ -3079,6 +3322,8 @@ applyHeaderText();
 document.getElementById('homeDateLabel').textContent = formatDateLabel();
 document.getElementById('dateLabel').textContent = formatDateLabel();
 document.getElementById('streakLabel').textContent = 'GO 💪';
+document.getElementById('workoutDatePicker').value = todayKey();
+document.getElementById('workoutDatePicker').max = todayKey();
 
 loadTodayEntry();
 loadRecommendation();
