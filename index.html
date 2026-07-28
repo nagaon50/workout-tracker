@@ -235,7 +235,7 @@
     color: var(--chalk);
     font-size: 14px;
     padding: 8px 10px;
-    text-align:left;
+    text-align:center;
     font-family:'Oswald',sans-serif;
     width:100%;
   }
@@ -270,13 +270,8 @@
     text-transform: uppercase;
   }
   .col-labels.time-mode{ grid-template-columns: 28px 1fr 34px; }
-  .col-labels span:nth-child(2), .col-labels span:nth-child(3){ text-align:left; padding-left: 4px; }
-  .ex-chevron{
-    color: var(--steel);
-    font-size: 12px;
-    margin-left: 4px;
-    transition: transform .15s ease;
-  }
+  .col-labels span:nth-child(2), .col-labels span:nth-child(3){ text-align:center; }
+  .ex-chevron{ display:none; }
   .ex-recent{
     margin: 0 12px 10px;
     padding: 8px 10px;
@@ -768,8 +763,7 @@
   .add-ex-trigger .plus{ color: var(--plate); font-size: 18px; line-height:1; }
   .add-ex-form{ display:none; margin-top: 12px; gap: 8px; flex-direction: column; }
   .add-ex-form.show{ display:flex; }
-  .add-ex-form input{ display:none; } /* .add-ex-form-inp 클래스로 대체됨 */
-  .add-ex-form input:focus{ outline:none; border-color: var(--plate); }
+  /* .add-ex-form-inp 클래스로 스타일 통일됨 */
   .add-ex-form-actions{ display:flex; gap: 8px; }
   .add-ex-confirm{
     flex:1;
@@ -794,11 +788,8 @@
     cursor:pointer;
   }
   .ex-remove{ color: var(--steel); font-size: 16px; cursor:pointer; padding: 0 2px; }
-  .ex-edit-btn{ color: var(--chalk-dim); font-size: 15px; cursor:pointer; padding: 0 2px; }
-  .ex-drag-handle{
-    font-size: 18px; color: var(--steel); cursor: grab; padding: 0 6px 0 2px;
-    touch-action: none; user-select: none; flex-shrink: 0; line-height:1;
-  }
+  .ex-edit-btn{ color: var(--steel); font-size: 13px; cursor:pointer; padding: 0 3px; }
+  .ex-drag-handle{ display:none; }
   .ex-edit-form{
     padding: 10px 14px 14px;
     border-top: 1px solid var(--line);
@@ -821,9 +812,10 @@
   .exercise-card.dragging{
     position: fixed;
     z-index: 500;
-    opacity: 0.93;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    opacity: 0.95;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.55);
     pointer-events: none;
+    transform: rotate(1.5deg) scale(1.02);
   }
   .drag-placeholder{
     border: 2px dashed var(--plate);
@@ -1847,9 +1839,11 @@ document.getElementById('restTimerMinus').addEventListener('click', () => {
 });
 
 function initDragSort(list){
-  let dragging = null;     // 드래그 중인 .exercise-card 요소
-  let placeholder = null;  // 위치 표시용 투명 박스
-  let startY = 0, offsetY = 0;
+  let dragging = null;
+  let placeholder = null;
+  let offsetY = 0;
+  let longPressTimer = null;
+  let isDragging = false;
 
   function getCards(){ return [...list.querySelectorAll('.exercise-card')]; }
 
@@ -1861,17 +1855,15 @@ function initDragSort(list){
   }
 
   function cardAtY(y){
-    const cards = getCards().filter(c => c !== dragging);
-    for(const c of cards){
-      const rect = c.getBoundingClientRect();
-      if(y < rect.top + rect.height / 2) return c;
-    }
-    return null;
+    return getCards().filter(c => c !== dragging).find(c => {
+      const r = c.getBoundingClientRect();
+      return y < r.top + r.height / 2;
+    }) || null;
   }
 
-  function onStart(e, card){
+  function startDrag(e, card){
+    isDragging = true;
     const touch = e.touches ? e.touches[0] : e;
-    startY = touch.clientY;
     offsetY = touch.clientY - card.getBoundingClientRect().top;
     dragging = card;
     const rect = card.getBoundingClientRect();
@@ -1881,44 +1873,63 @@ function initDragSort(list){
     card.style.top = (rect.top + window.scrollY) + 'px';
     list.insertBefore(placeholder, card);
     document.body.appendChild(card);
+    if(navigator.vibrate) navigator.vibrate(40); // 드래그 시작 진동 피드백
   }
 
-  function onMove(e){
+  function onTouchStart(e){
+    if(e.target.closest('.ex-edit-btn') || e.target.closest('.ex-remove') ||
+       e.target.closest('.set-check') || e.target.closest('.set-input') ||
+       e.target.closest('.add-set') || e.target.closest('.ex-name') ||
+       e.target.closest('.ex-edit-form')) return;
+
+    const card = e.target.closest('.exercise-card');
+    if(!card) return;
+    isDragging = false;
+
+    longPressTimer = setTimeout(() => {
+      startDrag(e, card);
+    }, 500);
+  }
+
+  function onTouchMove(e){
+    if(longPressTimer && !isDragging){
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
     if(!dragging) return;
     e.preventDefault();
-    const touch = e.touches ? e.touches[0] : e;
+    const touch = e.touches[0];
     const y = touch.clientY + window.scrollY;
     dragging.style.top = (y - offsetY) + 'px';
     const before = cardAtY(touch.clientY);
+    const addCard = list.querySelector('.add-ex-card');
     if(before) list.insertBefore(placeholder, before);
-    else list.insertBefore(placeholder, list.querySelector('.add-ex-card'));
+    else if(addCard) list.insertBefore(placeholder, addCard);
+    else list.appendChild(placeholder);
   }
 
-  async function onEnd(){
-    if(!dragging) return;
+  async function onTouchEnd(){
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    if(!dragging){ isDragging = false; return; }
     dragging.classList.remove('dragging');
     dragging.style.width = '';
     dragging.style.top = '';
     list.insertBefore(dragging, placeholder);
     placeholder.remove();
     placeholder = null;
-
-    // 새 순서로 currentRoutine 재정렬 후 저장
     const newOrder = getCards().map(c => c.querySelector('.ex-header')?.dataset.ex).filter(Boolean);
     currentRoutine = newOrder.map(name => currentRoutine.find(ex => ex.name === name)).filter(Boolean);
     await saveRoutine(currentDay, currentRoutine);
     dragging = null;
+    isDragging = false;
     renderExercises();
   }
 
-  list.querySelectorAll('.ex-drag-handle').forEach(handle => {
-    handle.addEventListener('touchstart', e => { onStart(e, handle.closest('.exercise-card')); }, { passive: true });
-    handle.addEventListener('mousedown', e => { onStart(e, handle.closest('.exercise-card')); });
-  });
-  document.addEventListener('touchmove', onMove, { passive: false });
-  document.addEventListener('touchend', onEnd);
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onEnd);
+  list.addEventListener('touchstart', onTouchStart, { passive: true });
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+  document.addEventListener('touchcancel', onTouchEnd);
 }
 
 function renderExercises(){
@@ -2007,7 +2018,7 @@ function renderExercises(){
         </span>
         <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
           ${isExpanded ? `<span class="ex-target">${ex.target}</span>` : ''}
-          <span class="ex-edit-btn" data-ex="${ex.name}" title="운동 편집">✎</span>
+          <span class="ex-edit-btn" data-ex="${ex.name}" title="운동 편집">···</span>
           <span class="ex-remove" data-ex="${ex.name}" title="운동 삭제">✕</span>
           <span class="ex-chevron">${isExpanded ? '▾' : '▸'}</span>
         </span>
