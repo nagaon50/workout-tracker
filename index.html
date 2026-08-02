@@ -2642,6 +2642,8 @@ function sanitizeBackupData(input){
   if(entries.length > 5000) throw new Error('백업 항목이 너무 많음');
   for(const [key, raw] of entries){
     if(typeof raw !== 'string' || raw.length > 2000000) throw new Error('잘못된 백업 값');
+    // 이전 버전 백업에 포함되던 임시 세션 시작값은 복원하지 않고 건너뜀
+    if(/^workout:sessionStart:\d{4}-\d{2}-\d{2}$/.test(key)) continue;
     if(key === 'workout:dates'){
       const dates = JSON.parse(raw);
       if(!Array.isArray(dates) || dates.length > 5000 || dates.some(v => typeof v !== 'string' || !BACKUP_DATE_RE.test(v.split('|')[0]) || !BACKUP_DAYS.has(v.split('|')[1]))) throw new Error('잘못된 날짜 목록');
