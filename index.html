@@ -20,6 +20,11 @@
     --done: #4E8B5C;
   }
   *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button{ font: inherit; }
+  button:focus-visible, input:focus-visible, a:focus-visible{
+    outline: 2px solid var(--plate);
+    outline-offset: 2px;
+  }
   body{
     margin:0;
     background: var(--bg);
@@ -134,6 +139,43 @@
     border-radius: 12px;
     margin-bottom: 12px;
     overflow:hidden;
+    position: relative;
+  }
+  .ex-card-content{
+    position: relative;
+    z-index: 2;
+    background: var(--bg-card);
+    transition: transform .2s ease;
+    touch-action: pan-y;
+  }
+  .exercise-card.swipe-open .ex-card-content{ transform: translateX(116px); }
+  .ex-swipe-actions{
+    position:absolute;
+    inset:0 auto 0 0;
+    width:116px;
+    display:flex;
+    align-items:stretch;
+    z-index:1;
+  }
+  .ex-swipe-actions button{
+    flex:1;
+    border:0;
+    color:var(--chalk);
+    font-size:12px;
+    cursor:pointer;
+  }
+  .ex-swipe-actions .ex-edit-btn{ background:var(--steel); }
+  .ex-swipe-actions .ex-remove{ background:var(--plate); }
+  .exercise-search{
+    width:100%;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:9px;
+    color:var(--chalk);
+    padding:11px 13px;
+    margin-bottom:12px;
+    font-family:'Noto Sans KR',sans-serif;
+    font-size:13px;
   }
   .ex-header{
     padding: 14px 16px 10px;
@@ -291,6 +333,8 @@
     border: 1px dashed var(--line);
     border-radius: 6px;
     cursor:pointer;
+    background: transparent;
+    width: calc(100% - 8px);
   }
   .footer-bar{
     position: fixed;
@@ -680,6 +724,8 @@
     color: var(--chalk-dim);
     border-radius: 6px;
     cursor: default;
+    border: 0;
+    background: transparent;
   }
   .cal-day.has-record{ color: var(--chalk); background: var(--bg); cursor: pointer; font-weight: 600; }
   .cal-day.has-record::after{
@@ -738,6 +784,10 @@
   .history-actions{ display:flex; align-items:center; gap: 12px; }
   .history-edit{ font-size: 12px; color: var(--chalk-dim); cursor:pointer; text-decoration: underline; text-decoration-style: dotted; white-space: nowrap; }
   .history-delete{ font-size: 12px; color: var(--steel); cursor:pointer; text-decoration: underline; text-decoration-style: dotted; white-space: nowrap; }
+  .history-edit, .history-delete, .ex-remove, .ex-edit-btn, .ex-drag-handle, .add-ex-trigger{
+    background: transparent;
+    border: 0;
+  }
   .history-delete.confirming{ color: var(--plate); font-weight: 600; text-decoration: none; }
   .history-ex{ font-size: 12.5px; color: var(--chalk-dim); line-height: 1.6; }
   .history-ex b{ color: var(--chalk); font-weight:500; }
@@ -924,6 +974,7 @@
     cursor:pointer;
     z-index: 150;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    color: var(--chalk);
   }
   .settings-card{
     background: var(--bg-card);
@@ -978,6 +1029,8 @@
     cursor:pointer;
     transition: background .15s ease;
     flex-shrink: 0;
+    border: 0;
+    padding: 0;
   }
   .settings-switch.on{ background: var(--plate); }
   .settings-switch-knob{
@@ -1025,6 +1078,8 @@
     color: var(--chalk-dim);
     cursor:pointer;
     transition: color .15s ease;
+    background: transparent;
+    border: 0;
   }
   .bottom-tab .tab-icon{ font-size: 19px; line-height:1; }
   .bottom-tab.active{ color: var(--plate); }
@@ -1098,17 +1153,18 @@
         <div class="eyebrow" id="workoutEyebrow">Push · Pull · Legs</div>
       </div>
       <div class="day-tabs">
-        <div class="day-tab active" data-day="chest">가슴</div>
-        <div class="day-tab" data-day="back">등</div>
-        <div class="day-tab" data-day="shoulder">어깨</div>
-        <div class="day-tab" data-day="arm">팔</div>
-        <div class="day-tab" data-day="leg">하체</div>
-        <div class="day-tab" data-day="abs">복근</div>
-        <div class="day-tab" data-day="cardio">유산소</div>
+        <button class="day-tab active" data-day="chest" aria-pressed="true">가슴</button>
+        <button class="day-tab" data-day="back" aria-pressed="false">등</button>
+        <button class="day-tab" data-day="shoulder" aria-pressed="false">어깨</button>
+        <button class="day-tab" data-day="arm" aria-pressed="false">팔</button>
+        <button class="day-tab" data-day="leg" aria-pressed="false">하체</button>
+        <button class="day-tab" data-day="abs" aria-pressed="false">복근</button>
+        <button class="day-tab" data-day="cardio" aria-pressed="false">유산소</button>
       </div>
       <div style="margin-top:10px; font-size:11px; color:var(--steel); text-align:center;">📱 이 브라우저에만 저장돼요 (다른 기기·다른 브라우저에선 안 보여요)</div>
     </div>
     <div class="main">
+      <input class="exercise-search" id="exerciseSearchInput" type="search" placeholder="운동 종목 검색" aria-label="운동 종목 검색">
       <div class="date-row">
         <span class="date-label" id="dateLabel"></span>
         <span style="display:flex; align-items:center; gap:8px;">
@@ -1144,9 +1200,9 @@
   </div>
   <div class="main">
     <div class="history-stats" id="historyStats"></div>
-    <div class="view-toggle">
-      <div class="view-toggle-btn active" id="viewListBtn">리스트</div>
-      <div class="view-toggle-btn" id="viewCalBtn">달력</div>
+      <div class="view-toggle" role="group" aria-label="기록 보기 방식">
+        <button class="view-toggle-btn active" id="viewListBtn" aria-pressed="true">리스트</button>
+        <button class="view-toggle-btn" id="viewCalBtn" aria-pressed="false">달력</button>
     </div>
     <div id="historyContent"></div>
     <div id="calendarView" style="display:none;">
@@ -1165,13 +1221,13 @@
   <div class="main">
     <div class="body-input-card">
       <div class="body-input-row">
-        <label>측정 날짜</label>
+        <label for="bodyDateInput">측정 날짜</label>
         <input type="date" id="bodyDateInput">
       </div>
       <div class="body-input-grid">
-        <div><label>몸무게(kg)</label><input class="set-input" type="number" inputmode="decimal" id="bodyWeightInput" placeholder="0"></div>
-        <div><label>골격근량(kg)</label><input class="set-input" type="number" inputmode="decimal" id="bodyMuscleInput" placeholder="0"></div>
-        <div><label>체지방률(%)</label><input class="set-input" type="number" inputmode="decimal" id="bodyFatInput" placeholder="0"></div>
+        <div><label for="bodyWeightInput">몸무게(kg)</label><input class="set-input" type="number" inputmode="decimal" id="bodyWeightInput" placeholder="0"></div>
+        <div><label for="bodyMuscleInput">골격근량(kg)</label><input class="set-input" type="number" inputmode="decimal" id="bodyMuscleInput" placeholder="0"></div>
+        <div><label for="bodyFatInput">체지방률(%)</label><input class="set-input" type="number" inputmode="decimal" id="bodyFatInput" placeholder="0"></div>
       </div>
       <button class="save-btn" id="bodySaveBtn">변화 기록 저장</button>
     </div>
@@ -1180,10 +1236,10 @@
     <div class="history-stats" id="bodyStats"></div>
 
     <div class="section-label">월별 변화 그래프</div>
-    <div class="view-toggle" id="chartMetricToggle">
-      <div class="view-toggle-btn active" data-metric="weight">몸무게</div>
-      <div class="view-toggle-btn" data-metric="muscle">골격근량</div>
-      <div class="view-toggle-btn" data-metric="fat">체지방률</div>
+    <div class="view-toggle" id="chartMetricToggle" role="group" aria-label="그래프 지표">
+      <button class="view-toggle-btn active" data-metric="weight" aria-pressed="true">몸무게</button>
+      <button class="view-toggle-btn" data-metric="muscle" aria-pressed="false">골격근량</button>
+      <button class="view-toggle-btn" data-metric="fat" aria-pressed="false">체지방률</button>
     </div>
     <div class="chart-card" id="bodyChart"></div>
 
@@ -1207,11 +1263,11 @@
       <div class="dash-section-title">✏️ 화면 문구</div>
       <div class="settings-card">
         <div class="settings-text-row">
-          <label>상단 문구</label>
+          <label for="headerEyebrowInput">상단 문구</label>
           <input type="text" id="headerEyebrowInput" class="settings-text-input" maxlength="30" placeholder="Push · Pull · Legs">
         </div>
         <div class="settings-text-row">
-          <label>인사말</label>
+          <label for="headerGreetingInput">인사말</label>
           <input type="text" id="headerGreetingInput" class="settings-text-input" maxlength="30" placeholder="👋 안녕하세요">
         </div>
         <button class="save-btn-compact" id="saveHeaderTextBtn">문구 저장</button>
@@ -1224,11 +1280,11 @@
       <div class="dash-section-title">📈 주간 목표</div>
       <div class="settings-card">
         <div class="settings-row">
-          <label>운동 목표 (회/주)</label>
+          <label for="goalStrengthInput">운동 목표 (회/주)</label>
           <input type="number" id="goalStrengthInput" class="set-input settings-num-input" min="1" max="14">
         </div>
         <div class="settings-row">
-          <label>유산소 목표 (회/주)</label>
+          <label for="goalCardioInput">유산소 목표 (회/주)</label>
           <input type="number" id="goalCardioInput" class="set-input settings-num-input" min="1" max="14">
         </div>
         <button class="save-btn-compact" id="saveGoalsBtn">목표 저장</button>
@@ -1241,16 +1297,16 @@
       <div class="dash-section-title">⏱ 휴식 타이머</div>
       <div class="settings-card">
         <div class="settings-row">
-          <label>기본 휴식 시간 (초)</label>
+          <label for="restSecondsInput">기본 휴식 시간 (초)</label>
           <input type="number" id="restSecondsInput" class="set-input settings-num-input" min="10" max="600" step="5">
         </div>
         <div class="settings-toggle-row">
           <label>알림음</label>
-          <span class="settings-switch" id="soundToggle" data-on="true"><span class="settings-switch-knob"></span></span>
+          <button class="settings-switch" id="soundToggle" data-on="true" aria-pressed="true" aria-label="알림음"><span class="settings-switch-knob"></span></button>
         </div>
         <div class="settings-toggle-row">
           <label>진동</label>
-          <span class="settings-switch" id="vibrationToggle" data-on="true"><span class="settings-switch-knob"></span></span>
+          <button class="settings-switch" id="vibrationToggle" data-on="true" aria-pressed="true" aria-label="진동"><span class="settings-switch-knob"></span></button>
         </div>
         <button class="save-btn-compact" id="saveTimerSettingsBtn">타이머 설정 저장</button>
       </div>
@@ -1261,8 +1317,11 @@
     <div class="dash-section">
       <div class="dash-section-title">💾 데이터 백업</div>
       <div class="backup-row">
-        <span class="backup-btn" id="exportBtn">⬇️ 내보내기</span>
-        <span class="backup-btn" id="importBtn">⬆️ 가져오기</span>
+        <button class="backup-btn" id="exportBtn">⬇️ 내보내기</button>
+        <button class="backup-btn" id="importBtn">⬆️ 가져오기</button>
+      </div>
+      <div class="backup-row" style="margin-top:8px;">
+        <button class="backup-btn" id="exportAnalysisBtn">🤖 ChatGPT 분석용 내보내기</button>
       </div>
       <div class="backup-hint">기기·주소가 바뀌어도 백업 파일로 기록을 옮길 수 있어요.</div>
       <input type="file" id="importFileInput" accept="application/json" style="display:none;">
@@ -1274,7 +1333,7 @@
       <div class="dash-section-title">⚠️ 데이터 초기화</div>
       <div class="settings-card">
         <div class="dash-empty" style="margin-bottom:12px;">운동 기록·몸의 변화 기록을 모두 삭제해요. 되돌릴 수 없으니 내보내기로 먼저 백업하는 걸 추천해요.</div>
-        <span class="history-delete" id="resetAllBtn" style="font-size:13px;">전체 데이터 삭제</span>
+        <button class="history-delete" id="resetAllBtn" style="font-size:13px; background:none; border:0; padding:0;">전체 데이터 삭제</button>
       </div>
     </div>
 
@@ -1283,16 +1342,16 @@
   </div>
 </section>
 
-<div class="settings-fab" id="settingsBtn" title="설정">⚙️</div>
+<button class="settings-fab" id="settingsBtn" title="설정" aria-label="설정 열기">⚙️</button>
 
 <!-- ============ 하단 고정 탭 ============ -->
-<nav class="bottom-tabs">
-  <div class="bottom-tab active" data-tab="home"><span class="tab-icon">🏠</span><span>홈</span></div>
-  <div class="bottom-tab" data-tab="record"><span class="tab-icon">📋</span><span>기록</span></div>
-  <div class="bottom-tab" data-tab="change"><span class="tab-icon">📈</span><span>변화</span></div>
+<nav class="bottom-tabs" aria-label="주요 메뉴">
+  <button class="bottom-tab active" data-tab="home" aria-current="page"><span class="tab-icon">🏠</span><span>홈</span></button>
+  <button class="bottom-tab" data-tab="record"><span class="tab-icon">📋</span><span>기록</span></button>
+  <button class="bottom-tab" data-tab="change"><span class="tab-icon">📈</span><span>변화</span></button>
 </nav>
 
-<div class="toast" id="toast">저장됐어요 💪</div>
+<div class="toast" id="toast" role="status" aria-live="polite">저장됐어요 💪</div>
 
 <script>
 // 사파리/로컬 브라우저 저장용 — 이 브라우저(이 폰)에만 기록이 남습니다.
@@ -1311,6 +1370,19 @@ const storage = {
     return { key, deleted: true };
   }
 };
+
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[ch]);
+}
+
+function localDateKey(date = new Date()){
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 // 장비 아이콘 — 크고 단순하게, 한눈에 식별 가능하도록
 const B = '#A8A49B'; // 보조 색
@@ -1516,8 +1588,7 @@ function getExerciseMode(day, ex){
 }
 
 function todayKey(){
-  const d = new Date();
-  return d.toISOString().slice(0,10);
+  return localDateKey();
 }
 
 function formatDateLabel(){
@@ -1632,24 +1703,34 @@ async function loadTodayEntry(){
 }
 
 async function addExercise(name, nameEn, target){
-  if(!name.trim()) return;
-  const newEx = { name: name.trim(), nameEn: nameEn.trim() || '', target: target.trim() || '직접 추가' };
+  const cleanName = name.trim().slice(0, 80);
+  if(!cleanName) return;
+  if(currentRoutine.some(ex => ex.name === cleanName)){
+    showToast('같은 이름의 운동이 이미 있어요');
+    return;
+  }
+  const newEx = { name: cleanName, nameEn: nameEn.trim().slice(0, 80), target: target.trim().slice(0, 120) || '직접 추가' };
   currentRoutine.push(newEx);
   await saveRoutine(currentDay, currentRoutine);
   const mode = getExerciseMode(currentDay, newEx);
-  currentData[name.trim()] = [emptySet(mode), emptySet(mode), emptySet(mode)];
+  currentData[cleanName] = [emptySet(mode), emptySet(mode), emptySet(mode)];
   renderExercises();
 }
 
 async function editExercise(oldName, newName, newNameEn, newTarget){
   const idx = currentRoutine.findIndex(ex => ex.name === oldName);
   if(idx < 0) return;
-  const updated = { ...currentRoutine[idx], name: newName, nameEn: newNameEn, target: newTarget || currentRoutine[idx].target };
+  const cleanName = newName.trim().slice(0, 80);
+  if(!cleanName || currentRoutine.some((ex, i) => i !== idx && ex.name === cleanName)){
+    showToast('운동 이름을 확인해주세요');
+    return;
+  }
+  const updated = { ...currentRoutine[idx], name: cleanName, nameEn: newNameEn.trim().slice(0, 80), target: newTarget.trim().slice(0, 120) || currentRoutine[idx].target };
   currentRoutine[idx] = updated;
   await saveRoutine(currentDay, currentRoutine);
   // 데이터 키 이름이 바뀐 경우 마이그레이션
-  if(oldName !== newName && currentData[oldName]){
-    currentData[newName] = currentData[oldName];
+  if(oldName !== cleanName && currentData[oldName]){
+    currentData[cleanName] = currentData[oldName];
     delete currentData[oldName];
   }
   renderExercises();
@@ -1838,7 +1919,11 @@ document.getElementById('restTimerMinus').addEventListener('click', () => {
   }
 });
 
+let dragSortAbortController = null;
 function initDragSort(list){
+  if(dragSortAbortController) dragSortAbortController.abort();
+  dragSortAbortController = new AbortController();
+  const signal = dragSortAbortController.signal;
   let dragging = null;
   let placeholder = null;
   let offsetY = 0;
@@ -1861,22 +1946,22 @@ function initDragSort(list){
     }) || null;
   }
 
-  function startDrag(e, card){
+  function startDrag(clientY, card){
     isDragging = true;
-    const touch = e.touches ? e.touches[0] : e;
-    offsetY = touch.clientY - card.getBoundingClientRect().top;
+    offsetY = clientY - card.getBoundingClientRect().top;
     dragging = card;
     const rect = card.getBoundingClientRect();
     placeholder = createPlaceholder(rect.height);
     card.classList.add('dragging');
     card.style.width = rect.width + 'px';
-    card.style.top = (rect.top + window.scrollY) + 'px';
+    card.style.top = rect.top + 'px';
     list.insertBefore(placeholder, card);
     document.body.appendChild(card);
     if(navigator.vibrate) navigator.vibrate(40); // 드래그 시작 진동 피드백
   }
 
   function onTouchStart(e){
+    if(document.getElementById('exerciseSearchInput').value.trim()) return;
     if(e.target.closest('.ex-edit-btn') || e.target.closest('.ex-remove') ||
        e.target.closest('.set-check') || e.target.closest('.set-input') ||
        e.target.closest('.add-set') || e.target.closest('.ex-name') ||
@@ -1885,9 +1970,10 @@ function initDragSort(list){
     const card = e.target.closest('.exercise-card');
     if(!card) return;
     isDragging = false;
+    const startClientY = e.touches[0].clientY;
 
     longPressTimer = setTimeout(() => {
-      startDrag(e, card);
+      startDrag(startClientY, card);
     }, 500);
   }
 
@@ -1899,8 +1985,7 @@ function initDragSort(list){
     if(!dragging) return;
     e.preventDefault();
     const touch = e.touches[0];
-    const y = touch.clientY + window.scrollY;
-    dragging.style.top = (y - offsetY) + 'px';
+    dragging.style.top = (touch.clientY - offsetY) + 'px';
     const before = cardAtY(touch.clientY);
     const addCard = list.querySelector('.add-ex-card');
     if(before) list.insertBefore(placeholder, before);
@@ -1918,7 +2003,7 @@ function initDragSort(list){
     list.insertBefore(dragging, placeholder);
     placeholder.remove();
     placeholder = null;
-    const newOrder = getCards().map(c => c.querySelector('.ex-header')?.dataset.ex).filter(Boolean);
+    const newOrder = [...new Set(getCards().map(c => c.querySelector('.ex-header')?.dataset.ex).filter(Boolean))];
     currentRoutine = newOrder.map(name => currentRoutine.find(ex => ex.name === name)).filter(Boolean);
     await saveRoutine(currentDay, currentRoutine);
     dragging = null;
@@ -1926,10 +2011,66 @@ function initDragSort(list){
     renderExercises();
   }
 
-  list.addEventListener('touchstart', onTouchStart, { passive: true });
-  document.addEventListener('touchmove', onTouchMove, { passive: false });
-  document.addEventListener('touchend', onTouchEnd);
-  document.addEventListener('touchcancel', onTouchEnd);
+  list.addEventListener('touchstart', onTouchStart, { passive: true, signal });
+  document.addEventListener('touchmove', onTouchMove, { passive: false, signal });
+  document.addEventListener('touchend', onTouchEnd, { signal });
+  document.addEventListener('touchcancel', onTouchEnd, { signal });
+}
+
+let swipeAbortController = null;
+function initSwipeActions(list){
+  if(swipeAbortController) swipeAbortController.abort();
+  swipeAbortController = new AbortController();
+  const signal = swipeAbortController.signal;
+  let card = null, content = null, startX = 0, startY = 0, dx = 0;
+
+  list.addEventListener('touchstart', e => {
+    const header = e.target.closest('.ex-header');
+    if(!header || e.target.closest('button, a, input')) return;
+    card = header.closest('.exercise-card');
+    content = card.querySelector('.ex-card-content');
+    list.querySelectorAll('.exercise-card.swipe-open').forEach(c => { if(c !== card) c.classList.remove('swipe-open'); });
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = 0;
+  }, { passive:true, signal });
+
+  list.addEventListener('touchmove', e => {
+    if(!card || !content) return;
+    dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if(Math.abs(dx) <= Math.abs(dy)) return;
+    e.preventDefault();
+    content.style.transform = `translateX(${Math.max(0, Math.min(116, dx))}px)`;
+  }, { passive:false, signal });
+
+  const finishSwipe = () => {
+    if(!card || !content) return;
+    content.style.transform = '';
+    card.classList.toggle('swipe-open', dx > 55);
+    if(Math.abs(dx) > 10){
+      const swipedCard = card;
+      swipedCard.dataset.suppressClick = '1';
+      setTimeout(() => { delete swipedCard.dataset.suppressClick; }, 0);
+    }
+    card = null;
+    content = null;
+    dx = 0;
+  };
+  list.addEventListener('touchend', finishSwipe, { signal });
+  list.addEventListener('touchcancel', finishSwipe, { signal });
+}
+
+function applyExerciseSearch(){
+  const input = document.getElementById('exerciseSearchInput');
+  const list = document.getElementById('exerciseList');
+  if(!input || !list) return;
+  const query = input.value.trim().toLocaleLowerCase('ko');
+  list.querySelectorAll('.exercise-card').forEach(card => {
+    const name = card.querySelector('.ex-header')?.dataset.ex || '';
+    const nameEn = card.querySelector('.ex-name-en')?.textContent || '';
+    card.style.display = !query || `${name} ${nameEn}`.toLocaleLowerCase('ko').includes(query) ? '' : 'none';
+  });
 }
 
 function renderExercises(){
@@ -1943,6 +2084,9 @@ function renderExercises(){
     const isFrequent = frequentExerciseSet.has(ex.name);
     const card = document.createElement('div');
     card.className = 'exercise-card';
+    const safeName = escapeHtml(ex.name);
+    const safeNameEn = escapeHtml(ex.nameEn || '');
+    const safeTarget = escapeHtml(ex.target || '');
 
     let setsHtml;
     if(mode === 'sec'){
@@ -1958,40 +2102,40 @@ function renderExercises(){
     sets.forEach((s, i) => {
       if(mode === 'sec'){
         setsHtml += `
-          <div class="set-row time-mode" data-ex="${ex.name}" data-idx="${i}">
+          <div class="set-row time-mode" data-ex="${safeName}" data-idx="${i}">
             <div class="set-num">${i+1}</div>
-            <input class="set-input seconds-input" type="number" inputmode="numeric" placeholder="0" value="${s.seconds || ''}">
-            <div class="set-check ${s.done ? 'done' : ''}">${s.done ? '✓' : ''}</div>
+            <input class="set-input seconds-input" type="number" inputmode="numeric" placeholder="0" value="${escapeHtml(s.seconds || '')}">
+            <button class="set-check ${s.done ? 'done' : ''}" aria-label="${i+1}세트 완료" aria-pressed="${s.done ? 'true' : 'false'}">${s.done ? '✓' : ''}</button>
           </div>
         `;
       } else if(mode === 'min'){
         setsHtml += `
-          <div class="set-row time-mode" data-ex="${ex.name}" data-idx="${i}">
+          <div class="set-row time-mode" data-ex="${safeName}" data-idx="${i}">
             <div class="set-num">${i+1}</div>
-            <input class="set-input minutes-input" type="number" inputmode="decimal" placeholder="0" value="${s.minutes || ''}">
-            <div class="set-check ${s.done ? 'done' : ''}">${s.done ? '✓' : ''}</div>
+            <input class="set-input minutes-input" type="number" inputmode="decimal" placeholder="0" value="${escapeHtml(s.minutes || '')}">
+            <button class="set-check ${s.done ? 'done' : ''}" aria-label="${i+1}세트 완료" aria-pressed="${s.done ? 'true' : 'false'}">${s.done ? '✓' : ''}</button>
           </div>
         `;
       } else if(mode === 'reps'){
         setsHtml += `
-          <div class="set-row time-mode" data-ex="${ex.name}" data-idx="${i}">
+          <div class="set-row time-mode" data-ex="${safeName}" data-idx="${i}">
             <div class="set-num">${i+1}</div>
-            <input class="set-input reps-only-input" type="number" inputmode="numeric" placeholder="0" value="${s.reps || ''}">
-            <div class="set-check ${s.done ? 'done' : ''}">${s.done ? '✓' : ''}</div>
+            <input class="set-input reps-only-input" type="number" inputmode="numeric" placeholder="0" value="${escapeHtml(s.reps || '')}">
+            <button class="set-check ${s.done ? 'done' : ''}" aria-label="${i+1}세트 완료" aria-pressed="${s.done ? 'true' : 'false'}">${s.done ? '✓' : ''}</button>
           </div>
         `;
       } else {
         setsHtml += `
-          <div class="set-row" data-ex="${ex.name}" data-idx="${i}">
+          <div class="set-row" data-ex="${safeName}" data-idx="${i}">
             <div class="set-num">${i+1}</div>
-            <input class="set-input weight-input" type="number" inputmode="decimal" placeholder="0" value="${s.weight || ''}">
-            <input class="set-input reps-input" type="number" inputmode="numeric" placeholder="0" value="${s.reps || ''}">
-            <div class="set-check ${s.done ? 'done' : ''}">${s.done ? '✓' : ''}</div>
+            <input class="set-input weight-input" type="number" inputmode="decimal" placeholder="0" value="${escapeHtml(s.weight || '')}">
+            <input class="set-input reps-input" type="number" inputmode="numeric" placeholder="0" value="${escapeHtml(s.reps || '')}">
+            <button class="set-check ${s.done ? 'done' : ''}" aria-label="${i+1}세트 완료" aria-pressed="${s.done ? 'true' : 'false'}">${s.done ? '✓' : ''}</button>
           </div>
         `;
       }
     });
-    setsHtml += `<div class="add-set" data-ex="${ex.name}">+ 세트 추가</div>`;
+    setsHtml += `<button class="add-set" data-ex="${safeName}">+ 세트 추가</button>`;
 
     let recentHtml = '';
     if(isExpanded){
@@ -2001,40 +2145,44 @@ function renderExercises(){
       } else if(!cached || cached.length === 0){
         recentHtml = `<div class="ex-recent">최근 기록 없음</div>`;
       } else {
-        recentHtml = `<div class="ex-recent">${cached.map(r => `<div>${r.date.slice(5)} · <b>${r.summary}</b></div>`).join('')}</div>`;
+        recentHtml = `<div class="ex-recent">${cached.map(r => `<div>${escapeHtml(r.date.slice(5))} · <b>${escapeHtml(r.summary)}</b></div>`).join('')}</div>`;
       }
     }
 
     card.innerHTML = `
-      <div class="ex-header" data-ex="${ex.name}">
-        <span class="ex-drag-handle" data-ex="${ex.name}" title="길게 눌러 순서 변경">⠿</span>
+      <div class="ex-swipe-actions">
+        <button class="ex-edit-btn" data-ex="${safeName}" aria-label="${safeName} 편집">수정</button>
+        <button class="ex-remove" data-ex="${safeName}" aria-label="${safeName} 삭제">삭제</button>
+      </div>
+      <div class="ex-card-content">
+      <div class="ex-header" data-ex="${safeName}" role="button" tabindex="0" aria-expanded="${isExpanded ? 'true' : 'false'}">
+        <button class="ex-drag-handle" data-ex="${safeName}" title="길게 눌러 순서 변경" aria-label="${safeName} 순서 변경">⠿</button>
         <span class="ex-name-group">
           <span class="ex-icon">${ICONS[ex.icon] || ICONS.custom}</span>
           <span class="ex-name-col">
-            <a class="ex-name" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' 운동 방법')}" target="_blank" rel="noopener">${ex.name}</a>
-            ${ex.nameEn ? `<span class="ex-name-en">${ex.nameEn}</span>` : ''}
+            <a class="ex-name" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' 운동 방법')}" target="_blank" rel="noopener">${safeName}</a>
+            ${ex.nameEn ? `<span class="ex-name-en">${safeNameEn}</span>` : ''}
           </span>
           ${isFrequent ? `<span class="ex-freq-badge" title="자주 하는 운동">🔥 자주함</span>` : ''}
         </span>
         <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-          ${isExpanded ? `<span class="ex-target">${ex.target}</span>` : ''}
-          <span class="ex-edit-btn" data-ex="${ex.name}" title="운동 편집">···</span>
-          <span class="ex-remove" data-ex="${ex.name}" title="운동 삭제">✕</span>
+          ${isExpanded ? `<span class="ex-target">${safeTarget}</span>` : ''}
           <span class="ex-chevron">${isExpanded ? '▾' : '▸'}</span>
         </span>
       </div>
-      <div class="ex-edit-form" id="editForm_${ex.name.replace(/\s/g,'_')}" style="display:none;">
-        <input class="add-ex-form-inp" type="text" placeholder="운동 이름" value="${ex.name}" data-field="name">
-        <input class="add-ex-form-inp" type="text" placeholder="영문명 (예: Bench Press)" value="${ex.nameEn || ''}" data-field="nameEn">
-        <input class="add-ex-form-inp" type="text" placeholder="목표 세트·횟수" value="${ex.target || ''}" data-field="target">
+      <div class="ex-edit-form" style="display:none;">
+        <input class="add-ex-form-inp" type="text" maxlength="80" placeholder="운동 이름" value="${safeName}" data-field="name">
+        <input class="add-ex-form-inp" type="text" maxlength="80" placeholder="영문명 (예: Bench Press)" value="${safeNameEn}" data-field="nameEn">
+        <input class="add-ex-form-inp" type="text" maxlength="120" placeholder="목표 세트·횟수" value="${safeTarget}" data-field="target">
         <div class="add-ex-form-actions">
-          <button class="add-ex-confirm ex-edit-save" data-ex="${ex.name}">저장</button>
-          <button class="add-ex-cancel ex-edit-cancel" data-ex="${ex.name}">취소</button>
+          <button class="add-ex-confirm ex-edit-save" data-ex="${safeName}">저장</button>
+          <button class="add-ex-cancel ex-edit-cancel" data-ex="${safeName}">취소</button>
         </div>
       </div>
       <div class="ex-body" style="display:${isExpanded ? 'block' : 'none'};">
         ${recentHtml}
         <div class="set-rows">${setsHtml}</div>
+      </div>
       </div>
     `;
     list.appendChild(card);
@@ -2043,11 +2191,11 @@ function renderExercises(){
   const addCard = document.createElement('div');
   addCard.className = 'add-ex-card';
   addCard.innerHTML = `
-    <div class="add-ex-trigger" id="addExTrigger"><span class="plus">+</span> 운동 추가</div>
+    <button class="add-ex-trigger" id="addExTrigger"><span class="plus">+</span> 운동 추가</button>
     <div class="add-ex-form" id="addExForm">
-      <input class="add-ex-form-inp" type="text" id="newExName" placeholder="운동 이름 (예: 데드리프트)">
-      <input class="add-ex-form-inp" type="text" id="newExNameEn" placeholder="영문명 (예: Deadlift) — 선택">
-      <input class="add-ex-form-inp" type="text" id="newExTarget" placeholder="${currentDay === 'cardio' ? '목표 (예: 20분)' : currentDay === 'abs' ? '목표 (예: 3세트 x 15회)' : '목표 (예: 3세트 x 10회)'}">
+      <input class="add-ex-form-inp" type="text" id="newExName" maxlength="80" placeholder="운동 이름 (예: 데드리프트)">
+      <input class="add-ex-form-inp" type="text" id="newExNameEn" maxlength="80" placeholder="영문명 (예: Deadlift) — 선택">
+      <input class="add-ex-form-inp" type="text" id="newExTarget" maxlength="120" placeholder="${currentDay === 'cardio' ? '목표 (예: 20분)' : currentDay === 'abs' ? '목표 (예: 3세트 x 15회)' : '목표 (예: 3세트 x 10회)'}">
       <div class="add-ex-form-actions">
         <button class="add-ex-confirm" id="addExConfirm">추가하기</button>
         <button class="add-ex-cancel" id="addExCancel">취소</button>
@@ -2102,9 +2250,9 @@ function renderExercises(){
   list.querySelectorAll('.ex-edit-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      const name = btn.dataset.ex;
-      const formId = 'editForm_' + name.replace(/\s/g,'_');
-      const form = document.getElementById(formId);
+      const card = btn.closest('.exercise-card');
+      card.classList.remove('swipe-open');
+      const form = card.querySelector('.ex-edit-form');
       if(!form) return;
       const isOpen = form.style.display !== 'none';
       // 다른 편집 폼 모두 닫기
@@ -2118,8 +2266,7 @@ function renderExercises(){
     btn.addEventListener('click', async e => {
       e.stopPropagation();
       const oldName = btn.dataset.ex;
-      const formId = 'editForm_' + oldName.replace(/\s/g,'_');
-      const form = document.getElementById(formId);
+      const form = btn.closest('.exercise-card').querySelector('.ex-edit-form');
       const newName = form.querySelector('[data-field="name"]').value.trim();
       const newNameEn = form.querySelector('[data-field="nameEn"]').value.trim();
       const newTarget = form.querySelector('[data-field="target"]').value.trim();
@@ -2137,6 +2284,8 @@ function renderExercises(){
   // 접기/펼치기
   list.querySelectorAll('.ex-header').forEach(header => {
     header.addEventListener('click', async (e) => {
+      const card = header.closest('.exercise-card');
+      if(card.dataset.suppressClick === '1') return;
       if(e.target.closest('.ex-name') || e.target.closest('.ex-remove') ||
          e.target.closest('.ex-edit-btn') || e.target.closest('.ex-drag-handle')) return;
       const name = header.dataset.ex;
@@ -2152,10 +2301,17 @@ function renderExercises(){
         renderExercises();
       }
     });
+    header.addEventListener('keydown', e => {
+      if(e.target !== header || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      header.click();
+    });
   });
 
   // 드래그 정렬 (터치 + 마우스)
+  initSwipeActions(list);
   initDragSort(list);
+  applyExerciseSearch();
 
   function wireAutoFillInput(selector, field, autoField){
     list.querySelectorAll(selector).forEach(inp => {
@@ -2214,6 +2370,8 @@ function renderExercises(){
   });
 }
 
+document.getElementById('exerciseSearchInput').addEventListener('input', applyExerciseSearch);
+
 async function saveToday(){
   const key = `workout:${targetDateKey()}:${currentDay}`;
   // 체크(✓) 표시한 세트만 기록으로 저장
@@ -2237,6 +2395,7 @@ async function saveToday(){
         if(startedAt){
           const minutes = Math.max(1, Math.round((Date.now() - Number(startedAt)) / 60000));
           localStorage.setItem(`workout:duration:${todayKey()}`, String(minutes));
+          localStorage.removeItem(startKey);
         }
       }
       await updateDateIndex();
@@ -2295,7 +2454,7 @@ function buildDateCardHtml(date, dayEntries){
       const sets = filterNonEmptySets(data[exName] || []);
       if(sets.length === 0) return;
       const setStr = formatSetSummary(sets);
-      exHtml += `<div class="history-ex"><b>${exName}</b> — ${setStr}</div>`;
+      exHtml += `<div class="history-ex"><b>${escapeHtml(exName)}</b> — ${escapeHtml(setStr)}</div>`;
     });
     if(!exHtml) return;
     sections += `
@@ -2303,8 +2462,8 @@ function buildDateCardHtml(date, dayEntries){
         <div class="history-section-head">
           <span class="history-day">${dayLabel}</span>
           <span class="history-actions">
-            <span class="history-edit" data-date="${date}" data-day="${day}" title="이 부위 기록 수정">수정</span>
-            <span class="history-delete" data-date="${date}" data-day="${day}" title="이 부위 기록 삭제">삭제</span>
+            <button class="history-edit" data-date="${escapeHtml(date)}" data-day="${escapeHtml(day)}" title="이 부위 기록 수정">수정</button>
+            <button class="history-delete" data-date="${escapeHtml(date)}" data-day="${escapeHtml(day)}" title="이 부위 기록 삭제">삭제</button>
           </span>
         </div>
         ${exHtml}
@@ -2365,7 +2524,11 @@ function wireDeleteButtons(container, onDeleted){
 async function editWorkoutEntry(date, day){
   editingDate = date;
   currentDay = day;
-  document.querySelectorAll('.day-tab').forEach(t => t.classList.toggle('active', t.dataset.day === day));
+  document.querySelectorAll('.day-tab').forEach(t => {
+    const active = t.dataset.day === day;
+    t.classList.toggle('active', active);
+    t.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
   showPage('home');
   showHomeWorkoutView();
   await loadTodayEntry();
@@ -2443,10 +2606,93 @@ async function loadHistoryStats(){
 }
 
 // ===== 데이터 백업 (내보내기 / 가져오기) =====
+const BACKUP_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const BACKUP_DAYS = new Set(['chest','back','shoulder','arm','leg','abs','cardio']);
+
+function cleanNumber(value){
+  if(value === '' || value === null || value === undefined) return '';
+  const number = Number(value);
+  if(!Number.isFinite(number) || Math.abs(number) > 1000000) throw new Error('잘못된 숫자');
+  return String(value).slice(0, 30);
+}
+
+function cleanWorkoutData(value){
+  if(!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('잘못된 운동 기록');
+  const result = Object.create(null);
+  const entries = Object.entries(value);
+  if(entries.length > 100) throw new Error('운동 기록이 너무 많음');
+  entries.forEach(([name, sets]) => {
+    if(!name || name.length > 80 || ['__proto__','prototype','constructor'].includes(name) || !Array.isArray(sets) || sets.length > 50) throw new Error('잘못된 운동 항목');
+    result[name] = sets.map(set => {
+      if(!set || typeof set !== 'object' || Array.isArray(set)) throw new Error('잘못된 세트');
+      const clean = { done: set.done === true };
+      ['weight','reps','seconds','minutes'].forEach(field => {
+        if(field in set) clean[field] = cleanNumber(set[field]);
+      });
+      return clean;
+    });
+  });
+  return result;
+}
+
+function sanitizeBackupData(input){
+  if(!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('잘못된 백업');
+  const output = {};
+  const entries = Object.entries(input);
+  if(entries.length > 5000) throw new Error('백업 항목이 너무 많음');
+  for(const [key, raw] of entries){
+    if(typeof raw !== 'string' || raw.length > 2000000) throw new Error('잘못된 백업 값');
+    if(key === 'workout:dates'){
+      const dates = JSON.parse(raw);
+      if(!Array.isArray(dates) || dates.length > 5000 || dates.some(v => typeof v !== 'string' || !BACKUP_DATE_RE.test(v.split('|')[0]) || !BACKUP_DAYS.has(v.split('|')[1]))) throw new Error('잘못된 날짜 목록');
+      output[key] = JSON.stringify([...new Set(dates)]);
+      continue;
+    }
+    if(key === 'body:records'){
+      const records = JSON.parse(raw);
+      if(!Array.isArray(records) || records.length > 5000) throw new Error('잘못된 변화 기록');
+      output[key] = JSON.stringify(records.map(r => {
+        if(!r || typeof r !== 'object' || !BACKUP_DATE_RE.test(r.date)) throw new Error('잘못된 변화 기록');
+        return { date:r.date, weight:cleanNumber(r.weight), muscle:cleanNumber(r.muscle), fat:cleanNumber(r.fat) };
+      }));
+      continue;
+    }
+    const routineMatch = key.match(/^workout:routine:([a-z]+)$/);
+    if(routineMatch){
+      if(!BACKUP_DAYS.has(routineMatch[1])) throw new Error('잘못된 루틴');
+      const routine = JSON.parse(raw);
+      if(!Array.isArray(routine) || routine.length > 100) throw new Error('잘못된 루틴');
+      output[key] = JSON.stringify(routine.map(ex => {
+        if(!ex || typeof ex !== 'object' || typeof ex.name !== 'string' || !ex.name.trim() || ex.name.length > 80) throw new Error('잘못된 운동 이름');
+        return { name:ex.name.trim(), nameEn:String(ex.nameEn || '').slice(0,80), target:String(ex.target || '').slice(0,120), icon:String(ex.icon || 'custom').slice(0,20), unit:ex.unit === 'sec' ? 'sec' : undefined };
+      }));
+      continue;
+    }
+    const workoutMatch = key.match(/^workout:(\d{4}-\d{2}-\d{2}):([a-z]+)$/);
+    if(workoutMatch){
+      if(!BACKUP_DATE_RE.test(workoutMatch[1]) || !BACKUP_DAYS.has(workoutMatch[2])) throw new Error('잘못된 운동 키');
+      output[key] = JSON.stringify(cleanWorkoutData(JSON.parse(raw)));
+      continue;
+    }
+    if(/^workout:duration:\d{4}-\d{2}-\d{2}$/.test(key)){
+      const minutes = Number(raw);
+      if(!Number.isFinite(minutes) || minutes < 0 || minutes > 1440) throw new Error('잘못된 운동 시간');
+      output[key] = String(Math.round(minutes));
+      continue;
+    }
+    throw new Error('허용되지 않은 백업 키');
+  }
+  return output;
+}
+
 function exportBackup(){
   const backup = {};
   Object.keys(localStorage).forEach(k => {
-    if(k.startsWith('workout:') || k === 'body:records'){
+    const exportable = k === 'workout:dates' || k === 'body:records' ||
+      /^workout:routine:[a-z]+$/.test(k) ||
+      /^workout:\d{4}-\d{2}-\d{2}:[a-z]+$/.test(k) ||
+      /^workout:duration:\d{4}-\d{2}-\d{2}$/.test(k);
+    if(exportable){
       backup[k] = localStorage.getItem(k);
     }
   });
@@ -2463,7 +2709,71 @@ function exportBackup(){
   showToast('백업 파일을 저장했어요 📤');
 }
 
+function markdownText(value){
+  return String(value ?? '').replace(/\r?\n/g, ' ').replace(/\|/g, '\\|').trim();
+}
+
+async function exportAnalysisMarkdown(){
+  try{
+    const entries = (await getAllDateEntries()).slice().sort();
+    const workoutDates = new Set(entries.map(entry => entry.split('|')[0]));
+    const lines = [
+      '# 운동 기록 분석 데이터', '',
+      `- 내보낸 날짜: ${todayKey()}`,
+      `- 총 운동일: ${workoutDates.size}일`,
+      `- 총 운동 세션: ${entries.length}회`,
+      `- 주간 목표: 근력 ${appSettings.goalStrength}회 / 유산소 ${appSettings.goalCardio}회`, '',
+      '## 몸의 변화', '',
+      '| 날짜 | 몸무게(kg) | 골격근량(kg) | 체지방률(%) |',
+      '|---|---:|---:|---:|'
+    ];
+
+    const bodyRecords = await loadBodyRecords();
+    if(bodyRecords.length){
+      bodyRecords.forEach(r => lines.push(`| ${markdownText(r.date)} | ${markdownText(r.weight || '-')} | ${markdownText(r.muscle || '-')} | ${markdownText(r.fat || '-')} |`));
+    }else{
+      lines.push('| 기록 없음 | - | - | - |');
+    }
+
+    lines.push('', '## 운동 세부 기록', '');
+    if(!entries.length) lines.push('운동 기록 없음');
+    for(const entry of entries){
+      const [date, day] = entry.split('|');
+      const result = await storage.get(`workout:${date}:${day}`);
+      if(!result || !result.value) continue;
+      const data = JSON.parse(result.value);
+      const dayLabel = ROUTINE[day] ? ROUTINE[day].label : day;
+      lines.push(`### ${date} · ${markdownText(dayLabel)}`);
+      const duration = localStorage.getItem(`workout:duration:${date}`);
+      if(duration) lines.push(`- 운동 시간: ${markdownText(duration)}분`);
+      Object.entries(data).forEach(([name, sets]) => {
+        const summary = formatSetSummary(filterNonEmptySets(sets || []));
+        lines.push(`- ${markdownText(name)}: ${markdownText(summary || '기록 없음')}`);
+      });
+      lines.push('');
+    }
+
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type:'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `workout-analysis-${todayKey()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('ChatGPT 분석용 파일을 저장했어요 🤖');
+  }catch(e){
+    console.error('분석용 내보내기 실패', e);
+    showToast('분석용 파일을 만들지 못했어요');
+  }
+}
+
 async function importBackupFile(file){
+  if(file.size > 5 * 1024 * 1024){
+    showToast('백업 파일이 너무 커요');
+    return;
+  }
   let parsed;
   try{
     const text = await file.text();
@@ -2472,8 +2782,10 @@ async function importBackupFile(file){
     showToast('파일을 읽을 수 없어요');
     return;
   }
-  const data = (parsed && parsed.data) ? parsed.data : parsed;
-  if(!data || typeof data !== 'object'){
+  let data;
+  try{
+    data = sanitizeBackupData((parsed && parsed.data) ? parsed.data : parsed);
+  }catch(e){
     showToast('올바른 백업 파일이 아니에요');
     return;
   }
@@ -2513,6 +2825,7 @@ async function importBackupFile(file){
 }
 
 document.getElementById('exportBtn').addEventListener('click', exportBackup);
+document.getElementById('exportAnalysisBtn').addEventListener('click', exportAnalysisMarkdown);
 document.getElementById('importBtn').addEventListener('click', () => {
   document.getElementById('importFileInput').click();
 });
@@ -2602,14 +2915,16 @@ async function renderCalendar(){
     const hasRecord = !!dateSet[dateStr];
     const isToday = dateStr === todayStr;
     const isSelected = dateStr === calSelectedDate;
-    cells += `<div class="cal-day ${hasRecord ? 'has-record' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" data-date="${dateStr}">${d}</div>`;
+    cells += hasRecord
+      ? `<button class="cal-day has-record ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" data-date="${dateStr}" aria-label="${dateStr} 기록 보기">${d}</button>`
+      : `<div class="cal-day ${isToday ? 'today' : ''}">${d}</div>`;
   }
 
   box.innerHTML = `
-    <div class="cal-nav">
-      <div class="cal-nav-btn" id="calPrev">‹</div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="calPrev" aria-label="이전 달">‹</button>
       <div class="cal-month-label">${year}년 ${month+1}월</div>
-      <div class="cal-nav-btn" id="calNext">›</div>
+        <button class="cal-nav-btn" id="calNext" aria-label="다음 달">›</button>
     </div>
     <div class="cal-grid">${cells}</div>
   `;
@@ -2647,6 +2962,8 @@ async function showCalDetail(dateStr, dayTypes){
 document.getElementById('viewListBtn').addEventListener('click', () => {
   document.getElementById('viewListBtn').classList.add('active');
   document.getElementById('viewCalBtn').classList.remove('active');
+  document.getElementById('viewListBtn').setAttribute('aria-pressed', 'true');
+  document.getElementById('viewCalBtn').setAttribute('aria-pressed', 'false');
   document.getElementById('historyContent').style.display = 'block';
   document.getElementById('calendarView').style.display = 'none';
 });
@@ -2654,6 +2971,8 @@ document.getElementById('viewListBtn').addEventListener('click', () => {
 document.getElementById('viewCalBtn').addEventListener('click', () => {
   document.getElementById('viewCalBtn').classList.add('active');
   document.getElementById('viewListBtn').classList.remove('active');
+  document.getElementById('viewCalBtn').setAttribute('aria-pressed', 'true');
+  document.getElementById('viewListBtn').setAttribute('aria-pressed', 'false');
   document.getElementById('historyContent').style.display = 'none';
   document.getElementById('calendarView').style.display = 'block';
   document.getElementById('calDetail').innerHTML = '';
@@ -2669,7 +2988,11 @@ document.querySelectorAll('.day-tab').forEach(tab => {
 });
 
 function selectDay(day){
-  document.querySelectorAll('.day-tab').forEach(t => t.classList.toggle('active', t.dataset.day === day));
+  document.querySelectorAll('.day-tab').forEach(t => {
+    const active = t.dataset.day === day;
+    t.classList.toggle('active', active);
+    t.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
   currentDay = day;
   hideRestTimer();
   loadTodayEntry();
@@ -2904,7 +3227,7 @@ async function renderMonthlyGrowth(entries){
   let streak = 0;
   let cursor = new Date();
   cursor.setHours(0,0,0,0);
-  const cursorKey = () => cursor.toISOString().slice(0,10);
+  const cursorKey = () => localDateKey(cursor);
   if(!allDates.has(cursorKey())){
     cursor.setDate(cursor.getDate() - 1); // 오늘 기록이 없으면 어제부터 확인
   }
@@ -2957,8 +3280,8 @@ async function renderRecentPR(entries){
 
   box.innerHTML = prList.map(pr => `
     <div class="pr-item">
-      <span class="pr-name">${pr.name}</span>
-      <span class="pr-value">${pr.weight}kg × ${pr.reps}</span>
+      <span class="pr-name">${escapeHtml(pr.name)}</span>
+      <span class="pr-value">${escapeHtml(pr.weight)}kg × ${escapeHtml(pr.reps)}</span>
     </div>
   `).join('');
 }
@@ -2966,11 +3289,13 @@ async function renderRecentPR(entries){
 async function loadHomeExtras(){
   try{
     const entries = await getAllDateEntries();
-    renderWeeklyProgress(entries);
-    renderBodyMini();
-    renderRecentWorkout(entries);
-    renderMonthlyGrowth(entries);
-    renderRecentPR(entries);
+    await Promise.all([
+      renderWeeklyProgress(entries),
+      renderBodyMini(),
+      renderRecentWorkout(entries),
+      renderMonthlyGrowth(entries),
+      renderRecentPR(entries)
+    ]);
   }catch(e){
     console.error('홈 대시보드 로딩 실패', e);
   }
@@ -3122,10 +3447,10 @@ function renderBodyHistoryList(records){
   box.innerHTML = desc.map(r => `
     <div class="history-entry">
       <div class="history-entry-head">
-        <span class="history-day">${r.date}</span>
-        <span class="history-delete" data-date="${r.date}" title="이 기록 삭제">삭제</span>
+        <span class="history-day">${escapeHtml(r.date)}</span>
+        <button class="history-delete" data-date="${escapeHtml(r.date)}" title="이 기록 삭제">삭제</button>
       </div>
-      <div class="history-ex">몸무게 <b>${r.weight || '-'}kg</b> · 골격근량 <b>${r.muscle || '-'}kg</b> · 체지방률 <b>${r.fat || '-'}%</b></div>
+      <div class="history-ex">몸무게 <b>${escapeHtml(r.weight || '-')}kg</b> · 골격근량 <b>${escapeHtml(r.muscle || '-')}kg</b> · 체지방률 <b>${escapeHtml(r.fat || '-')}%</b></div>
     </div>
   `).join('');
   box.querySelectorAll('.history-delete').forEach(btn => {
@@ -3167,6 +3492,7 @@ document.getElementById('chartMetricToggle').addEventListener('click', async (e)
   const btn = e.target.closest('[data-metric]');
   if(!btn) return;
   document.querySelectorAll('#chartMetricToggle .view-toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#chartMetricToggle .view-toggle-btn').forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
   btn.classList.add('active');
   currentChartMetric = btn.dataset.metric;
   renderBodyChart(await loadBodyRecords());
@@ -3179,7 +3505,11 @@ function showPage(name){
   document.getElementById('pageChange').classList.toggle('active', name === 'change');
   document.getElementById('pageSettings').classList.toggle('active', name === 'settings');
   if(name !== 'settings'){
-    document.querySelectorAll('.bottom-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.bottom-tab').forEach(t => {
+      const active = t.dataset.tab === name;
+      t.classList.toggle('active', active);
+      if(active) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
   }
   window.scrollTo({ top: 0 });
 }
@@ -3191,9 +3521,7 @@ function showHomeWorkoutView(){
   document.getElementById('homeWorkoutView').style.display = 'block';
   if(!editingDate){
     const startKey = `workout:sessionStart:${todayKey()}`;
-    if(!localStorage.getItem(startKey)){
-      localStorage.setItem(startKey, String(Date.now()));
-    }
+    localStorage.setItem(startKey, String(Date.now()));
   }
   window.scrollTo({ top: 0 });
 }
@@ -3220,6 +3548,7 @@ document.getElementById('startWorkoutBtn').addEventListener('click', () => {
   showHomeWorkoutView();
 });
 document.getElementById('workoutBackBtn').addEventListener('click', () => {
+  if(!editingDate) localStorage.removeItem(`workout:sessionStart:${todayKey()}`);
   editingDate = null;
   document.getElementById('workoutDatePicker').value = todayKey();
   hideRestTimer();
@@ -3233,6 +3562,7 @@ function setSwitchState(id, on){
   const el = document.getElementById(id);
   el.dataset.on = on ? 'true' : 'false';
   el.classList.toggle('on', on);
+  el.setAttribute('aria-pressed', on ? 'true' : 'false');
 }
 
 function loadSettingsPage(){
