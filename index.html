@@ -114,18 +114,24 @@
     color: var(--chalk-dim);
   }
   .workout-date-picker{
-    background: var(--bg-card);
-    border: 1px solid var(--line);
-    border-radius: 7px;
-    color: var(--chalk-dim);
-    font-size: 11.5px;
-    padding: 5px 8px;
+    width: 150px;
+    background: rgba(196, 64, 43, 0.12);
+    border: 1px solid var(--plate);
+    border-radius: 9px;
+    color: var(--chalk);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 9px 11px;
     font-family: 'Oswald', sans-serif;
     cursor: pointer;
+    color-scheme: dark;
+    box-shadow: 0 0 0 1px rgba(196, 64, 43, 0.08);
   }
   .workout-date-picker::-webkit-calendar-picker-indicator{
-    filter: invert(0.6);
+    filter: invert(0.9);
+    cursor: pointer;
   }
+  .date-controls{ display:flex; align-items:center; justify-content:space-between; width:100%; gap:12px; }
   .streak{
     font-family:'Oswald',sans-serif;
     font-size: 12px;
@@ -752,6 +758,19 @@
     border: 1px dashed var(--line);
     border-radius: 10px;
   }
+  .history-more-btn{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    padding:11px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:var(--bg-card);
+    color:var(--chalk-dim);
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
   .history-entry{
     background: var(--bg-card);
     border: 1px solid var(--line);
@@ -904,6 +923,7 @@
     font-weight:600;
     cursor:pointer;
   }
+  .inbody-source-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .inbody-preview{ display:none; width:100%; max-height:180px; object-fit:contain; margin-top:10px; border-radius:8px; }
   .inbody-status{ min-height:17px; margin-top:9px; font-size:11.5px; color:var(--chalk-dim); line-height:1.5; }
   .body-input-row{
@@ -1187,7 +1207,7 @@
     <div class="main">
       <input class="exercise-search" id="exerciseSearchInput" type="search" placeholder="운동 종목 검색" aria-label="운동 종목 검색">
       <div class="date-row">
-        <span style="display:flex; align-items:center; gap:8px;">
+        <span class="date-controls">
           <input type="date" id="workoutDatePicker" class="workout-date-picker">
           <span class="streak" id="streakLabel"></span>
         </span>
@@ -1243,8 +1263,12 @@
       <div class="inbody-scan">
         <div class="inbody-scan-title">📷 인바디 사진에서 불러오기</div>
         <div class="inbody-scan-hint">기록지를 정면에서 밝게 촬영하면 몸무게·골격근량·체지방률을 입력칸에 채워드려요. 인식 결과를 확인한 뒤 저장해주세요.</div>
-        <label class="inbody-scan-btn" for="inbodyImageInput">사진 촬영 또는 선택</label>
-        <input type="file" id="inbodyImageInput" accept="image/*" capture="environment" hidden>
+        <div class="inbody-source-actions">
+          <label class="inbody-scan-btn" for="inbodyCameraInput">📷 카메라 촬영</label>
+          <label class="inbody-scan-btn" for="inbodyGalleryInput">🖼️ 사진첩에서 선택</label>
+        </div>
+        <input type="file" id="inbodyCameraInput" accept="image/*" capture="environment" hidden>
+        <input type="file" id="inbodyGalleryInput" accept="image/*" hidden>
         <img class="inbody-preview" id="inbodyPreview" alt="선택한 인바디 기록지 미리보기">
         <div class="inbody-status" id="inbodyOcrStatus" role="status" aria-live="polite"></div>
       </div>
@@ -2888,6 +2912,7 @@ document.getElementById('importFileInput').addEventListener('change', async (e) 
   e.target.value = '';
 });
 
+let historyVisibleCount = 3;
 async function loadHistory(){
   const panel = document.getElementById('historyContent');
   panel.innerHTML = '<div class="loading">불러오는 중...</div>';
@@ -2910,12 +2935,23 @@ async function loadHistory(){
     const sortedDates = Object.keys(byDate).sort().reverse();
 
     let html = '';
-    for(const date of sortedDates.slice(0, 30)){
+    for(const date of sortedDates.slice(0, historyVisibleCount)){
       const dayEntries = await buildDateEntriesFor(date, byDate[date]);
       html += buildDateCardHtml(date, dayEntries);
     }
+    if(sortedDates.length > historyVisibleCount){
+      const remaining = sortedDates.length - historyVisibleCount;
+      html += `<button class="history-more-btn" id="historyMoreBtn">더 보기 · ${remaining}개 남음</button>`;
+    }
     panel.innerHTML = html || '<div class="history-empty">아직 저장된 기록이 없어요.</div>';
     wireDeleteButtons(panel, loadHistory);
+    const moreBtn = document.getElementById('historyMoreBtn');
+    if(moreBtn){
+      moreBtn.addEventListener('click', () => {
+        historyVisibleCount += 3;
+        loadHistory();
+      });
+    }
   }catch(e){
     panel.innerHTML = '<div class="history-empty">기록을 불러오지 못했어요.</div>';
   }
@@ -3454,7 +3490,7 @@ async function recognizeInbodyImage(file){
   }
 }
 
-document.getElementById('inbodyImageInput').addEventListener('change', async event => {
+async function handleInbodyImageChange(event){
   const file = event.target.files[0];
   if(!file) return;
   const status = document.getElementById('inbodyOcrStatus');
@@ -3476,7 +3512,10 @@ document.getElementById('inbodyImageInput').addEventListener('change', async eve
   }finally{
     event.target.value = '';
   }
-});
+}
+
+document.getElementById('inbodyCameraInput').addEventListener('change', handleInbodyImageChange);
+document.getElementById('inbodyGalleryInput').addEventListener('change', handleInbodyImageChange);
 
 async function loadBodyRecords(){
   try{
@@ -3723,7 +3762,10 @@ document.querySelectorAll('.bottom-tab').forEach(tab => {
       loadTodayEntry();
       showHomeWorkoutView();
     }
-    if(name === 'record') loadHistory();
+    if(name === 'record'){
+      historyVisibleCount = 3;
+      loadHistory();
+    }
     if(name === 'change') loadBodyPage();
   });
 });
