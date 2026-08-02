@@ -104,7 +104,7 @@
   #homeWorkoutView .main{ padding-bottom: 110px; }
   .date-row{
     display:flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items:center;
     margin-bottom: 16px;
     padding: 0 2px;
@@ -882,6 +882,30 @@
     padding: 16px;
     margin: 14px 0 16px;
   }
+  .inbody-scan{
+    background: var(--bg);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 13px;
+    margin-bottom: 14px;
+  }
+  .inbody-scan-title{ font-size: 13px; font-weight: 700; color: var(--chalk); margin-bottom: 4px; }
+  .inbody-scan-hint{ font-size: 11px; color: var(--chalk-dim); line-height: 1.5; margin-bottom: 10px; }
+  .inbody-scan-btn{
+    display:block;
+    width:100%;
+    text-align:center;
+    padding:10px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--chalk);
+    background:var(--bg-card);
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .inbody-preview{ display:none; width:100%; max-height:180px; object-fit:contain; margin-top:10px; border-radius:8px; }
+  .inbody-status{ min-height:17px; margin-top:9px; font-size:11.5px; color:var(--chalk-dim); line-height:1.5; }
   .body-input-row{
     display:flex;
     align-items:center;
@@ -1148,10 +1172,7 @@
   <!-- 홈: 운동 종류 선택 + 세트 기록 (같은 홈 탭 안에서 전환) -->
   <div id="homeWorkoutView" style="display:none;">
     <div class="header">
-      <div class="workout-top-row">
-        <button class="back-btn" id="workoutBackBtn">← 홈</button>
-        <div class="eyebrow" id="workoutEyebrow">Push · Pull · Legs</div>
-      </div>
+      <div class="eyebrow" id="workoutEyebrow">Push · Pull · Legs</div>
       <div class="day-tabs">
         <button class="day-tab active" data-day="chest" aria-pressed="true">가슴</button>
         <button class="day-tab" data-day="back" aria-pressed="false">등</button>
@@ -1166,7 +1187,6 @@
     <div class="main">
       <input class="exercise-search" id="exerciseSearchInput" type="search" placeholder="운동 종목 검색" aria-label="운동 종목 검색">
       <div class="date-row">
-        <span class="date-label" id="dateLabel"></span>
         <span style="display:flex; align-items:center; gap:8px;">
           <input type="date" id="workoutDatePicker" class="workout-date-picker">
           <span class="streak" id="streakLabel"></span>
@@ -1220,6 +1240,14 @@
   </div>
   <div class="main">
     <div class="body-input-card">
+      <div class="inbody-scan">
+        <div class="inbody-scan-title">📷 인바디 사진에서 불러오기</div>
+        <div class="inbody-scan-hint">기록지를 정면에서 밝게 촬영하면 몸무게·골격근량·체지방률을 입력칸에 채워드려요. 인식 결과를 확인한 뒤 저장해주세요.</div>
+        <label class="inbody-scan-btn" for="inbodyImageInput">사진 촬영 또는 선택</label>
+        <input type="file" id="inbodyImageInput" accept="image/*" capture="environment" hidden>
+        <img class="inbody-preview" id="inbodyPreview" alt="선택한 인바디 기록지 미리보기">
+        <div class="inbody-status" id="inbodyOcrStatus" role="status" aria-live="polite"></div>
+      </div>
       <div class="body-input-row">
         <label for="bodyDateInput">측정 날짜</label>
         <input type="date" id="bodyDateInput">
@@ -1347,6 +1375,7 @@
 <!-- ============ 하단 고정 탭 ============ -->
 <nav class="bottom-tabs" aria-label="주요 메뉴">
   <button class="bottom-tab active" data-tab="home" aria-current="page"><span class="tab-icon">🏠</span><span>홈</span></button>
+  <button class="bottom-tab" data-tab="workout"><span class="tab-icon">🏋️</span><span>운동</span></button>
   <button class="bottom-tab" data-tab="record"><span class="tab-icon">📋</span><span>기록</span></button>
   <button class="bottom-tab" data-tab="change"><span class="tab-icon">📈</span><span>변화</span></button>
 </nav>
@@ -1538,6 +1567,7 @@ let expandedState = {}; // { exName: true/false } — 접기/펼치기 상태
 let recentRecordCache = {}; // { exName: [{date, summary}, ...] | null | 'loading' }
 let frequentExerciseSet = new Set(); // 이 부위에서 자주 기록한 운동 이름들
 let editingDate = null; // null이면 오늘 기록, 날짜 문자열이면 해당 날짜 기록을 수정 중
+let editingSourceDate = null; // 기록 수정 시 원래 저장되어 있던 날짜
 
 function targetDateKey(){
   return editingDate || todayKey();
@@ -1667,16 +1697,13 @@ async function loadTodayEntry(){
   document.getElementById('workoutDatePicker').value = targetDateKey();
   document.getElementById('workoutDatePicker').max = todayKey(); // 미래 날짜 선택 방지
 
-  // 날짜 라벨 / 저장 버튼 문구를 날짜에 맞게 갱신
-  const dateLabelEl = document.getElementById('dateLabel');
+  // 저장 버튼 문구를 날짜에 맞게 갱신
   const streakLabelEl = document.getElementById('streakLabel');
   const saveBtnEl = document.getElementById('saveBtn');
-  if(editingDate){
-    dateLabelEl.textContent = formatDateLabelFor(editingDate);
+  if(editingSourceDate || editingDate){
     streakLabelEl.textContent = '✏️ 수정 중';
     saveBtnEl.textContent = '수정 저장';
   } else {
-    dateLabelEl.textContent = formatDateLabel();
     streakLabelEl.textContent = 'GO 💪';
     saveBtnEl.textContent = '기록 저장';
   }
@@ -2373,7 +2400,9 @@ function renderExercises(){
 document.getElementById('exerciseSearchInput').addEventListener('input', applyExerciseSearch);
 
 async function saveToday(){
-  const key = `workout:${targetDateKey()}:${currentDay}`;
+  const targetDate = targetDateKey();
+  const sourceDate = editingSourceDate;
+  const key = `workout:${targetDate}:${currentDay}`;
   // 체크(✓) 표시한 세트만 기록으로 저장
   const filtered = {};
   Object.keys(currentData).forEach(exName => {
@@ -2385,9 +2414,16 @@ async function saveToday(){
     return;
   }
   try{
+    if(sourceDate && sourceDate !== targetDate){
+      const existing = await storage.get(key);
+      if(existing && existing.value){
+        showToast('선택한 날짜에 같은 부위 기록이 이미 있어요');
+        return;
+      }
+    }
     const result = await storage.set(key, JSON.stringify(filtered));
     if(result){
-      const wasEditing = !!editingDate;
+      const wasEditing = !!sourceDate || !!editingDate;
       if(!wasEditing){
         // 오늘 운동 화면에 처음 들어온 시각부터 지금까지 경과 시간을 세션 시간으로 기록
         const startKey = `workout:sessionStart:${todayKey()}`;
@@ -2399,11 +2435,16 @@ async function saveToday(){
         }
       }
       await updateDateIndex();
+      if(sourceDate && sourceDate !== targetDate){
+        await storage.delete(`workout:${sourceDate}:${currentDay}`);
+        await removeDateIndexEntry(sourceDate, currentDay);
+      }
       historyLoaded = false;
       loadRecommendation();
       loadHomeExtras();
       if(wasEditing){
         editingDate = null;
+        editingSourceDate = null;
         showToast('수정됐어요 ✏️');
         showPage('record');
         loadHistory();
@@ -2430,6 +2471,13 @@ async function updateDateIndex(){
       await storage.set(idxKey, JSON.stringify(dates));
     }
   }catch(e){ console.error(e); }
+}
+
+async function removeDateIndexEntry(date, day){
+  const idxKey = 'workout:dates';
+  const res = await storage.get(idxKey);
+  const dates = res && res.value ? JSON.parse(res.value) : [];
+  await storage.set(idxKey, JSON.stringify(dates.filter(entry => entry !== `${date}|${day}`)));
 }
 
 let toastTimer = null;
@@ -2523,13 +2571,14 @@ function wireDeleteButtons(container, onDeleted){
 
 async function editWorkoutEntry(date, day){
   editingDate = date;
+  editingSourceDate = date;
   currentDay = day;
   document.querySelectorAll('.day-tab').forEach(t => {
     const active = t.dataset.day === day;
     t.classList.toggle('active', active);
     t.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
-  showPage('home');
+  showPage('workout');
   showHomeWorkoutView();
   await loadTodayEntry();
 
@@ -3008,6 +3057,11 @@ document.getElementById('workoutDatePicker').addEventListener('change', (e) => {
   const selected = e.target.value;
   if(!selected) return;
   editingDate = (selected === todayKey()) ? null : selected;
+  if(editingSourceDate){
+    document.getElementById('streakLabel').textContent = selected === editingSourceDate ? '✏️ 수정 중' : '📅 날짜 변경';
+    document.getElementById('saveBtn').textContent = '수정 저장';
+    return;
+  }
   loadTodayEntry();
 });
 
@@ -3310,6 +3364,120 @@ let currentChartMetric = 'weight';
 const METRIC_UNIT = { weight: 'kg', muscle: 'kg', fat: '%' };
 const METRIC_LABEL = { weight: '몸무게', muscle: '골격근량', fat: '체지방률' };
 
+let tesseractLoaderPromise = null;
+let inbodyPreviewUrl = null;
+
+function loadTesseractLibrary(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(tesseractLoaderPromise) return tesseractLoaderPromise;
+  tesseractLoaderPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+    script.onload = () => resolve(window.Tesseract);
+    script.onerror = () => reject(new Error('OCR 라이브러리 로딩 실패'));
+    document.head.appendChild(script);
+  });
+  return tesseractLoaderPromise;
+}
+
+async function prepareInbodyImage(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = new Image();
+    img.src = url;
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+    const scale = Math.min(2, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext('2d', { willReadFrequently:true });
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for(let i = 0; i < imageData.data.length; i += 4){
+      const gray = imageData.data[i] * .299 + imageData.data[i+1] * .587 + imageData.data[i+2] * .114;
+      const value = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
+      imageData.data[i] = imageData.data[i+1] = imageData.data[i+2] = value;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  }finally{
+    URL.revokeObjectURL(url);
+  }
+}
+
+function parseInbodyMetric(text, labelPattern, min, max){
+  const normalized = text.replace(/,/g, '.');
+  const match = normalized.match(new RegExp(`(?:${labelPattern})[^\\d]{0,35}(\\d{1,3}(?:\\.\\d{1,2})?)`, 'i'));
+  if(!match) return '';
+  const value = Number(match[1]);
+  return Number.isFinite(value) && value >= min && value <= max ? String(value) : '';
+}
+
+function parseInbodyText(text){
+  const result = {
+    weight: parseInbodyMetric(text, '체\\s*중|몸\\s*무게|Weight', 20, 250),
+    muscle: parseInbodyMetric(text, '골격\\s*근량|Skeletal\\s*Muscle\\s*Mass|SMM', 5, 100),
+    fat: parseInbodyMetric(text, '체지방\\s*률|Percent\\s*Body\\s*Fat|PBF', 1, 75),
+    date: ''
+  };
+  const dateMatch = text.match(/(?:측정일시|검사일시|측정일|Test\s*Date|Measurement\s*Date)[^\d]{0,20}(20\d{2})[.\/\-년]\s*(\d{1,2})[.\/\-월]\s*(\d{1,2})/i);
+  if(dateMatch){
+    result.date = `${dateMatch[1]}-${String(dateMatch[2]).padStart(2,'0')}-${String(dateMatch[3]).padStart(2,'0')}`;
+  }
+  return result;
+}
+
+async function recognizeInbodyImage(file){
+  const status = document.getElementById('inbodyOcrStatus');
+  status.textContent = '사진을 준비하는 중...';
+  const image = await prepareInbodyImage(file);
+  const TesseractApi = await loadTesseractLibrary();
+  status.textContent = '글자를 인식하는 중... 첫 실행은 조금 걸릴 수 있어요.';
+  const worker = await TesseractApi.createWorker(['kor','eng'], 1, {
+    logger: message => {
+      if(message.status === 'recognizing text') status.textContent = `글자 인식 중... ${Math.round((message.progress || 0) * 100)}%`;
+    }
+  });
+  try{
+    const { data:{ text } } = await worker.recognize(image, { rotateAuto:true });
+    const values = parseInbodyText(text);
+    const found = [];
+    if(values.weight){ document.getElementById('bodyWeightInput').value = values.weight; found.push(`몸무게 ${values.weight}kg`); }
+    if(values.muscle){ document.getElementById('bodyMuscleInput').value = values.muscle; found.push(`골격근량 ${values.muscle}kg`); }
+    if(values.fat){ document.getElementById('bodyFatInput').value = values.fat; found.push(`체지방률 ${values.fat}%`); }
+    if(values.date){ document.getElementById('bodyDateInput').value = values.date; found.push(`측정일 ${values.date}`); }
+    status.textContent = found.length
+      ? `인식 완료: ${found.join(' · ')} — 값이 맞는지 확인한 뒤 저장해주세요.`
+      : '중요 수치를 찾지 못했어요. 기록지를 정면에서 밝게 다시 촬영해주세요.';
+  }finally{
+    await worker.terminate();
+  }
+}
+
+document.getElementById('inbodyImageInput').addEventListener('change', async event => {
+  const file = event.target.files[0];
+  if(!file) return;
+  const status = document.getElementById('inbodyOcrStatus');
+  if(!file.type.startsWith('image/') || file.size > 15 * 1024 * 1024){
+    status.textContent = '15MB 이하의 이미지 파일을 선택해주세요.';
+    event.target.value = '';
+    return;
+  }
+  const preview = document.getElementById('inbodyPreview');
+  if(inbodyPreviewUrl) URL.revokeObjectURL(inbodyPreviewUrl);
+  inbodyPreviewUrl = URL.createObjectURL(file);
+  preview.src = inbodyPreviewUrl;
+  preview.style.display = 'block';
+  try{
+    await recognizeInbodyImage(file);
+  }catch(error){
+    console.error('인바디 OCR 실패', error);
+    status.textContent = '사진을 인식하지 못했어요. 인터넷 연결과 사진 상태를 확인해주세요.';
+  }finally{
+    event.target.value = '';
+  }
+});
+
 async function loadBodyRecords(){
   try{
     const res = await storage.get('body:records');
@@ -3504,7 +3672,7 @@ document.getElementById('chartMetricToggle').addEventListener('click', async (e)
 
 // ===== 페이지 내비게이션 (홈 / 기록 / 변화) =====
 function showPage(name){
-  document.getElementById('pageHome').classList.toggle('active', name === 'home');
+  document.getElementById('pageHome').classList.toggle('active', name === 'home' || name === 'workout');
   document.getElementById('pageRecord').classList.toggle('active', name === 'record');
   document.getElementById('pageChange').classList.toggle('active', name === 'change');
   document.getElementById('pageSettings').classList.toggle('active', name === 'settings');
@@ -3538,9 +3706,23 @@ function showHomeActionsView(){
 document.querySelectorAll('.bottom-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     const name = tab.dataset.tab;
-    if(name !== 'home') editingDate = null;
+    const wasEditingRecord = !!editingSourceDate;
+    editingDate = null;
+    editingSourceDate = null;
     showPage(name);
-    if(name === 'home'){ loadRecommendation(); loadHomeExtras(); }
+    if(name === 'home'){
+      if(!wasEditingRecord) localStorage.removeItem(`workout:sessionStart:${todayKey()}`);
+      document.getElementById('workoutDatePicker').value = todayKey();
+      hideRestTimer();
+      showHomeActionsView();
+      loadRecommendation();
+      loadHomeExtras();
+    }
+    if(name === 'workout'){
+      document.getElementById('workoutDatePicker').value = todayKey();
+      loadTodayEntry();
+      showHomeWorkoutView();
+    }
     if(name === 'record') loadHistory();
     if(name === 'change') loadBodyPage();
   });
@@ -3548,17 +3730,9 @@ document.querySelectorAll('.bottom-tab').forEach(tab => {
 
 document.getElementById('startWorkoutBtn').addEventListener('click', () => {
   editingDate = null;
+  editingSourceDate = null;
   if(suggestedDay) selectDay(suggestedDay);
   showHomeWorkoutView();
-});
-document.getElementById('workoutBackBtn').addEventListener('click', () => {
-  if(!editingDate) localStorage.removeItem(`workout:sessionStart:${todayKey()}`);
-  editingDate = null;
-  document.getElementById('workoutDatePicker').value = todayKey();
-  hideRestTimer();
-  showHomeActionsView();
-  loadRecommendation();
-  loadHomeExtras();
 });
 
 // ===== 설정 페이지 =====
@@ -3585,6 +3759,7 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
 });
 document.getElementById('settingsBackBtn').addEventListener('click', () => {
   showPage('home');
+  showHomeActionsView();
   loadRecommendation();
   loadHomeExtras();
 });
@@ -3665,7 +3840,6 @@ document.getElementById('resetAllBtn').addEventListener('click', (e) => {
 loadSettingsFromStorage();
 applyHeaderText();
 document.getElementById('homeDateLabel').textContent = formatDateLabel();
-document.getElementById('dateLabel').textContent = formatDateLabel();
 document.getElementById('streakLabel').textContent = 'GO 💪';
 document.getElementById('workoutDatePicker').value = todayKey();
 document.getElementById('workoutDatePicker').max = todayKey();
