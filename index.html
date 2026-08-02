@@ -2682,6 +2682,8 @@ function sanitizeBackupData(input){
       output[key] = String(Math.round(minutes));
       continue;
     }
+    // 더 새로운 앱 버전에서 추가된 workout 임시 키도 전체 가져오기를 막지 않음
+    if(key.startsWith('workout:')) continue;
     throw new Error('허용되지 않은 백업 키');
   }
   return output;
